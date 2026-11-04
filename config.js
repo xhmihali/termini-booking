@@ -12,5 +12,5 @@ window.TERMINI_CONFIG = {
   TRIAL_DAYS: 30,           // free trial, starts when the admin approves the salon (keep in sync with schema.sql)
   ADMIN_PHONE: '',          // your WhatsApp number (e.g. '0691234567'); shown in the footer and to salons with an expired plan
   CONTACT_EMAIL: '',        // contact email shown in the website footer (optional)
-  PRICE_MONTHLY: ''         // business price shown on the website, e.g. '1.500 ALL'; empty = "Contact us for the price"
+  PRICE_MONTHLY: '1.500 ALL' // business price shown on the website, e.g. '1.500 ALL'; empty = "Contact us for the price"
 };

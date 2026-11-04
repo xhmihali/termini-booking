@@ -148,7 +148,7 @@
           ${!S.user && S.route !== 'auth' ? `<button class="btn ghost sm" data-auth="login">${esc(t('login'))}</button><button class="btn accent sm hide-sm" data-auth="register">${esc(t('register'))}</button>` : ''}
         </header>
         <main>${content}</main>
-        ${S.user ? `<footer class="app-footer"><span>© ${new Date().getFullYear()} ${esc(C.APP_NAME || 'Termini')}</span>${C.ADMIN_PHONE ? `<a target="_blank" rel="noopener" href="https://wa.me/${waNumber(C.ADMIN_PHONE)}">${esc(t('contact'))}</a>` : ''}${C.CONTACT_EMAIL ? `<a href="mailto:${esc(C.CONTACT_EMAIL)}">${esc(C.CONTACT_EMAIL)}</a>` : ''}</footer>` : ''}
+        ${S.user ? `<footer class="app-footer"><span>© ${new Date().getFullYear()} ${esc(C.APP_NAME || 'Termini')}</span>${S.user.role === 'business' && C.ADMIN_PHONE ? `<a target="_blank" rel="noopener" href="https://wa.me/${waNumber(C.ADMIN_PHONE)}">${esc(t('contact_admin'))}</a>` : ''}${S.user.role === 'business' && C.CONTACT_EMAIL ? `<a href="mailto:${esc(C.CONTACT_EMAIL)}">${esc(C.CONTACT_EMAIL)}</a>` : ''}</footer>` : ''}
       </div>
       </div>
       ${opts.cta ? `<div class="cta"><div class="in">${opts.cta}</div></div>` : ''}
@@ -316,7 +316,6 @@
         <div class="lp-fbrand"><div class="row" style="gap:10px"><img src="icons/icon.svg" alt="" width="36" height="36" style="border-radius:11px"><b style="font-size:19px">${esc(C.APP_NAME || 'Termini')}</b></div><p class="muted small">${esc(t('tagline'))}</p></div>
         <div><div class="title">${esc(t('for_clients'))}</div><button class="linkbtn" data-scroll="salons-sec">${esc(t('nav_salons'))}</button><button class="linkbtn" data-auth="register">${esc(t('register'))}</button><button class="linkbtn" data-auth="login">${esc(t('login'))}</button></div>
         <div><div class="title">${esc(t('for_business'))}</div><button class="linkbtn" data-auth="register" data-role="business">${esc(t('biz_cta'))}</button><button class="linkbtn" data-scroll="pricing">${esc(t('nav_pricing'))}</button><button class="linkbtn" data-scroll="faq">${esc(t('nav_faq'))}</button></div>
-        <div><div class="title">${esc(t('contact'))}</div>${C.ADMIN_PHONE ? `<a target="_blank" rel="noopener" href="https://wa.me/${waNumber(C.ADMIN_PHONE)}">WhatsApp</a>` : ''}${C.CONTACT_EMAIL ? `<a href="mailto:${esc(C.CONTACT_EMAIL)}">${esc(C.CONTACT_EMAIL)}</a>` : ''}${!C.ADMIN_PHONE && !C.CONTACT_EMAIL ? `<span class="muted small">[${esc(t('contact_placeholder'))}]</span>` : ''}</div>
         <div class="lp-copy muted small">© ${year} ${esc(C.APP_NAME || 'Termini')} · ${esc(t('made_in'))}</div>
       </footer>`);
 
@@ -991,7 +990,9 @@
         <div class="row"><input type="text" readonly id="blink" value="${esc(salonLink(s.id))}" aria-label="${esc(t('booking_link'))}" style="flex:1;min-width:0"><button class="btn primary sm" id="copyl">${esc(t('copy'))}</button></div>
         <div class="actions"><a class="btn wa sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(fill('link_share_msg', { salon: s.name, url: salonLink(s.id) }))}">${esc(t('whatsapp'))}</a><button class="btn ghost sm" id="sharel">${esc(t('share'))}</button></div>
       </div>
-      <div class="card">${salonForm(s)}</div>`);
+      <div class="card">${salonForm(s)}</div>
+      ${C.ADMIN_PHONE || C.CONTACT_EMAIL ? `<div class="card" style="margin-top:12px"><div class="title">${esc(t('help_title'))}</div><p class="muted small" style="margin:4px 0 10px">${esc(t('help_body'))}</p>
+        <div class="actions" style="margin-top:0">${C.ADMIN_PHONE ? `<a class="btn wa sm" target="_blank" rel="noopener" href="${waLink(C.ADMIN_PHONE, fill('help_msg', { salon: s.name }))}">${esc(t('whatsapp'))}</a>` : ''}${C.CONTACT_EMAIL ? `<a class="btn ghost sm" href="mailto:${esc(C.CONTACT_EMAIL)}?subject=${encodeURIComponent('Termini – ' + s.name)}">${esc(C.CONTACT_EMAIL)}</a>` : ''}</div></div>` : ''}`);
     bindSalonForm(s, () => viewBizSalon());
     $('#copyl').onclick = async () => { try { await navigator.clipboard.writeText(salonLink(s.id)); toast(t('link_copied')); } catch { $('#blink').select(); } };
     $('#sharel').onclick = () => shareLink(s.name, salonLink(s.id));
