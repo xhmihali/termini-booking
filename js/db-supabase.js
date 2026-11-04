@@ -108,6 +108,12 @@
       return q(sb.from('reviews').insert({ booking_id, rating, comment: comment || '', client_id: uidOrThrow(), salon_id: '00000000-0000-0000-0000-000000000000' }).select().single());
     },
 
+    async adminExport() {
+      const out = {};
+      for (const tb of ['profiles', 'salons', 'services', 'staff', 'bookings', 'reviews']) out[tb] = await q(sb.from(tb).select('*').range(0, 49999));
+      return out;
+    },
+
     async adminSalons() {
       const rows = await q(sb.from('salons').select('*, profiles(name,email,phone)').order('created_at', { ascending: false }));
       return rows.map(s => ({ ...s, owner_name: s.profiles && s.profiles.name, owner_email: s.profiles && s.profiles.email, owner_phone: s.profiles && s.profiles.phone, profiles: undefined }));

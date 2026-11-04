@@ -1073,6 +1073,7 @@
         <div class="row between"><span class="title">${esc(t('reviews'))}</span>${s.rating_count ? `<span>${starRow(Number(s.rating_avg), 16)} <b>${Number(s.rating_avg).toFixed(1)}</b> <span class="muted small">(${s.rating_count})</span></span>` : ''}</div>
         <div id="revlist" class="muted small" style="margin-top:8px">…</div>
       </div>
+      <div class="card row" style="margin-bottom:12px"><div class="grow"><div class="title">${esc(t('export_title'))}</div><div class="muted small">${esc(t('export_hint'))}</div></div><button class="btn ghost sm" id="csv">${esc(t('export_btn'))}</button></div>
       <div class="card">${salonForm(s)}</div>
       ${C.ADMIN_PHONE || C.CONTACT_EMAIL ? `<div class="card" style="margin-top:12px"><div class="title">${esc(t('help_title'))}</div><p class="muted small" style="margin:4px 0 10px">${esc(t('help_body'))}</p>
         <div class="actions" style="margin-top:0">${C.ADMIN_PHONE ? `<a class="btn wa sm" target="_blank" rel="noopener" href="${waLink(C.ADMIN_PHONE, fill('help_msg', { salon: s.name }))}">${esc(t('whatsapp'))}</a>` : ''}${C.CONTACT_EMAIL ? `<a class="btn ghost sm" href="mailto:${esc(C.CONTACT_EMAIL)}?subject=${encodeURIComponent('Termini – ' + s.name)}">${esc(C.CONTACT_EMAIL)}</a>` : ''}</div></div>` : ''}`);
@@ -1080,6 +1081,14 @@
     $('#copyl').onclick = async () => { try { await navigator.clipboard.writeText(salonLink(s.id)); toast(t('link_copied')); } catch { $('#blink').select(); } };
     $('#sharel').onclick = () => shareLink(s.name, salonLink(s.id));
     $$('[data-nav2]').forEach(b => b.onclick = () => go(b.dataset.nav2));
+    $('#csv').onclick = () => guard(async () => {
+      const from = addDays(new Date(), -730), to = addDays(new Date(), 365);
+      const rows = (await DB().salonBookings(s.id, from.toISOString(), to.toISOString())).sort((a, b) => new Date(a.start_at) - new Date(b.start_at));
+      const head = ['date', 'start', 'end', 'client', 'phone', 'service', 'staff', 'price', 'status', 'walk_in', 'note'];
+      const lines = rows.map(b => [ymd(new Date(b.start_at)), hm(b.start_at), hm(b.end_at), b.client_name, b.client_phone, b.service_name, b.staff_name, b.price, b.status, b.walk_in ? 'yes' : '', b.note].map(csvCell).join(','));
+      downloadFile(`termini-rezervimet-${ymd(new Date())}.csv`, '\ufeff' + [head.join(','), ...lines].join('\n'), 'text/csv;charset=utf-8');
+      toast(t('backup_done'));
+    });
     const savePhotos = async photos => { S.salon = await DB().saveSalon({ id: s.id, photos }); viewBizSalon(); };
     const phin = $('#phin'); if (phin) phin.onchange = () => guard(async () => {
       const files = [...phin.files].slice(0, MAX_PHOTOS - (s.photos || []).length); if (!files.length) return;
@@ -1122,6 +1131,12 @@
     $('#print').onclick = () => window.print();
   }
 
+  function downloadFile(name, text, type) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  const csvCell = v => { const s = String(v ?? ''); return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+
   // ---------- Admin ----------
   async function viewAdmDash() {
     loading();
@@ -1129,6 +1144,11 @@
     const pending = salons.filter(s => s.status === 'pending');
     shell(`
       <h1>${esc(t('dashboard'))}</h1>
+      ${LIVE ? '' : `<div class="notice warn" style="margin-top:10px">${esc(t('demo_data_warning'))}</div>`}
+      <div class="card row" style="margin:10px 0">
+        <div class="grow"><div class="title">${esc(t('backup_title'))}</div><div class="muted small">${esc(t(LIVE ? 'backup_live_hint' : 'backup_demo_hint'))}</div></div>
+        <button class="btn primary sm" id="exp">${esc(t('backup_btn'))}</button>
+      </div>
       <div class="stats" style="margin-top:10px">
         <div class="stat"><div class="v">${st.salons}</div><div class="l">${esc(t('total_salons'))}</div></div>
         <div class="stat"><div class="v">${st.clients}</div><div class="l">${esc(t('total_clients'))}</div></div>
@@ -1137,6 +1157,11 @@
       <h2>${esc(t('pending_salons'))} (${pending.length})</h2>
       <div class="list grid-cards">${pending.length ? pending.map(adminSalonCard).join('') : '<div class="empty">—</div>'}</div>`);
     bindAdminSalonActions(viewAdmDash, salons);
+    $('#exp').onclick = () => guard(async () => {
+      const data = await DB().adminExport();
+      downloadFile(`termini-kopje-${ymd(new Date())}.json`, JSON.stringify({ exported_at: new Date().toISOString(), ...data }, null, 2), 'application/json');
+      toast(t('backup_done'));
+    });
   }
   function adminSalonCard(s) {
     const expired = isExpired(s), phone = s.owner_phone || s.phone, first = (s.owner_name || '').split(' ')[0];
@@ -1226,6 +1251,6 @@
       ((r.startsWith('biz-') && S.user.role === 'business') || (r.startsWith('adm-') && S.user.role === 'admin') || ['explore', 'my-bookings', 'profile'].includes(r) && (S.user.role === 'client' || r === 'profile'));
     okForRole ? go(r, {}, true) : home();
   }
-  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => {}); // scope = /termini-booking/ only
   start();
 })();

@@ -184,6 +184,10 @@
       db.reviews.push(r); recompute(db, b.salon_id); save(db); return r;
     },
 
+    async adminExport() { const db = load(); const u = need(db, 'admin'); if (u.role !== 'admin') throw new Error('FORBIDDEN');
+      const { users, ...rest } = JSON.parse(JSON.stringify(db)); delete rest.__session;
+      return { ...rest, profiles: users.map(strip) }; },
+
     async adminSalons() { const db = load(); need(db, 'admin');
       return db.salons.map(s => ({ ...s, owner_name: (db.users.find(u => u.id === s.owner_id) || {}).name, owner_email: (db.users.find(u => u.id === s.owner_id) || {}).email, owner_phone: (db.users.find(u => u.id === s.owner_id) || {}).phone })); },
     async adminSetSalon(id, patch) { const db = load(); const u = need(db, 'admin'); if (u.role !== 'admin') throw new Error('FORBIDDEN');

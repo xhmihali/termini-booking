@@ -23,6 +23,8 @@ A booking app (installable PWA) for barbers, beauty salons, nail studios and spa
 - **QR poster:** Salon → Your booking link → **QR code** opens a printable A5 poster with the salon's QR code (generated in the browser with the MIT-licensed `qrcode-generator`, no online service). It can also be downloaded as SVG.
 - **City pages for Google:** the GitHub Action `.github/workflows/seo.yml` runs every night (free on public repos), reads the public salon list from Supabase and builds static pages `qytet/<city>/` with titles, descriptions and Google structured data (stars, address, opening hours), plus `sitemap.xml` and `robots.txt`. After you connect Supabase, open the **Actions** tab → *City pages for Google* → **Run workflow** once, then add the site to Google Search Console and submit `sitemap.xml`. The daily run also keeps the free Supabase project from pausing.
 
+**Your data is safe (3 layers, free):** the live data is in the Supabase cloud database, not on the phone. A GitHub Action makes an **encrypted backup every night** (branch `backups`, last 30 kept). The admin can **download a full copy** at any time, and each business can download its bookings as CSV. Setup and restore steps: [`supabase/RESTORE.md`](supabase/RESTORE.md). ⚠️ Demo mode keeps data only in the browser; use it for testing, not for real clients.
+
 ## Cost: €0
 
 | Part | Service | Cost |

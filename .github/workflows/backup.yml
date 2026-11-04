@@ -1,0 +1,78 @@
+# Daily database backup – free (GitHub Actions on a public repo).
+# The backup is ENCRYPTED with your BACKUP_PASSWORD before it leaves the runner,
+# so nobody can read it even though the repository is public.
+# Saved on the branch "backups" (the last 30 are kept).
+# Setup: Settings → Secrets and variables → Actions → New repository secret:
+#   SUPABASE_DB_URL   = Supabase → Connect → "Session pooler" connection string (with your DB password)
+#   BACKUP_PASSWORD   = a long password only you know (keep it safe – without it the backup cannot be opened)
+name: Daily database backup
+on:
+  schedule:
+    - cron: '43 2 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: backup
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secrets
+        id: chk
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+          PW: ${{ secrets.BACKUP_PASSWORD }}
+        run: |
+          if [ -z "$DB" ] || [ -z "$PW" ]; then
+            echo "::warning::SUPABASE_DB_URL or BACKUP_PASSWORD is not set – backup skipped"
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install pg_dump 17
+        if: steps.chk.outputs.skip != '1'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-17
+      - name: Dump and encrypt
+        if: steps.chk.outputs.skip != '1'
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+          PW: ${{ secrets.BACKUP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          PG=/usr/lib/postgresql/17/bin
+          STAMP=$(date -u +%Y-%m-%d_%H%M)
+          mkdir -p out
+          # 1) all app tables (salons, services, staff, bookings, reviews, profiles): structure + data
+          $PG/pg_dump "$DB" --schema=public --no-owner --no-privileges -Fc -f out/public.dump
+          # 2) login accounts and photo records
+          $PG/pg_dump "$DB" --data-only --table=auth.users --table=auth.identities --table=storage.objects --no-owner --no-privileges -Fc -f out/auth_storage.dump
+          # 3) readable counts, to check the backup at a glance
+          $PG/psql "$DB" -At -c "select 'salons='||count(*) from public.salons union all select 'bookings='||count(*) from public.bookings union all select 'users='||count(*) from public.profiles union all select 'reviews='||count(*) from public.reviews" > out/counts.txt || true
+          tar czf - -C out . | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:PW -out "termini-backup-$STAMP.tar.gz.enc"
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+          cat out/counts.txt
+          ls -la termini-backup-*.enc
+      - name: Save to the "backups" branch (keeps the last 30)
+        if: steps.chk.outputs.skip != '1'
+        env:
+          TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          WS="$GITHUB_WORKSPACE"; mkdir -p "$RUNNER_TEMP/bk"; cd "$RUNNER_TEMP/bk"
+          git init -q && git checkout -q --orphan backups
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch -q "https://x-access-token:${TOKEN}@github.com/${REPO}.git" backups 2>/dev/null; then
+            git archive FETCH_HEAD | tar x -C .
+          fi
+          cp "$WS/termini-backup-$STAMP.tar.gz.enc" .
+          ls -1 termini-backup-*.enc | sort | head -n -30 | xargs -r rm -f
+          printf '# Termini backups\n\nEncrypted daily database backups (the last 30). How to restore: see supabase/RESTORE.md on the main branch.\n' > README.md
+          git add -A
+          git commit -qm "Backup $STAMP"
+          # the branch only ever holds the latest 30 encrypted files, so it is replaced each night
+          git push -q --force "https://x-access-token:${TOKEN}@github.com/${REPO}.git" backups
+          echo "Saved termini-backup-$STAMP.tar.gz.enc"
