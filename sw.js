@@ -1,6 +1,6 @@
 // Termini service worker: caches the app shell so it opens fast and offline.
 // Bump VERSION whenever you change files, so phones pick up the update.
-const VERSION = 'termini-v2';
+const VERSION = 'termini-v3';
 const SHELL = ['./', 'index.html', 'config.js', 'css/styles.css', 'js/i18n.js', 'js/app.js', 'js/db-demo.js', 'js/db-supabase.js',
   'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
 

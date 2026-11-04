@@ -52,7 +52,8 @@
       return { ...me, name, phone };
     },
 
-    async listSalons() { return q(sb.from('salons').select('*').eq('status', 'active').order('name')); },
+    async listSalons() { const today = new Date().toISOString().slice(0, 10);
+      return q(sb.from('salons').select('*').eq('status', 'active').or(`plan_until.is.null,plan_until.gte.${today}`).order('name')); },
     async getSalon(id) { return q(sb.from('salons').select('*').eq('id', id).maybeSingle()); },
     async mySalon() { return q(sb.from('salons').select('*').eq('owner_id', uidOrThrow()).maybeSingle()); },
     async saveSalon(d) {
@@ -93,8 +94,8 @@
     async setBookingStatus(id, status) { return q(sb.from('bookings').update({ status }).eq('id', id).select().single()); },
 
     async adminSalons() {
-      const rows = await q(sb.from('salons').select('*, profiles(name,email)').order('created_at', { ascending: false }));
-      return rows.map(s => ({ ...s, owner_name: s.profiles && s.profiles.name, owner_email: s.profiles && s.profiles.email, profiles: undefined }));
+      const rows = await q(sb.from('salons').select('*, profiles(name,email,phone)').order('created_at', { ascending: false }));
+      return rows.map(s => ({ ...s, owner_name: s.profiles && s.profiles.name, owner_email: s.profiles && s.profiles.email, owner_phone: s.profiles && s.profiles.phone, profiles: undefined }));
     },
     async adminSetSalon(id, patch) { return q(sb.from('salons').update(patch).eq('id', id).select().single()); },
     async adminUsers() { return q(sb.from('profiles').select('*').order('created_at', { ascending: false }).limit(1000)); },

@@ -30,7 +30,7 @@
     void admin;
     const salon = (owner, name, category, city, address, desc, hours, status, plan) => {
       const s = { id: uid(), owner_id: owner.id, name, category, city, address, phone: owner.phone, description: desc,
-        hours, status, plan, plan_until: trialEnd, accepting: true, created_at: now() };
+        hours, status, plan, plan_until: status === 'active' ? trialEnd : null, approved_at: status === 'active' ? addDays(new Date(), -60).toISOString() : null, accepting: true, created_at: now() };
       db.salons.push(s); return s;
     };
     const s1 = salon(b1, 'Berberia Elegance', 'barber', 'Tiranë', 'Rr. Myslym Shyri 24', 'Prerje klasike dhe moderne, rruajtje me peshqir të nxehtë.',
@@ -89,7 +89,7 @@
     async signOut() { ls.del(SKEY); if (mem) mem.__session = null; },
     async updateProfile({ name, phone }) { const db = load(); const u = need(db); u.name = name; u.phone = phone; save(db); return strip(u); },
 
-    async listSalons() { return load().salons.filter(s => s.status === 'active'); },
+    async listSalons() { const today = new Date().toISOString().slice(0, 10); return load().salons.filter(s => s.status === 'active' && (!s.plan_until || s.plan_until >= today)); },
     async getSalon(id) { return load().salons.find(s => s.id === id) || null; },
     async mySalon() { const db = load(); const u = need(db); return db.salons.find(s => s.owner_id === u.id) || null; },
     async saveSalon(data) {
@@ -98,8 +98,7 @@
       let s = data.id && db.salons.find(x => x.id === data.id);
       if (s) { if (!ownsSalon(db, u, s.id)) throw new Error('FORBIDDEN'); fields.forEach(f => { if (f in data) s[f] = data[f]; }); }
       else {
-        s = { id: uid(), owner_id: u.id, status: 'pending', plan: 'trial',
-          plan_until: addDays(new Date(), (window.TERMINI_CONFIG || {}).TRIAL_DAYS || 30).toISOString().slice(0, 10), created_at: now() };
+        s = { id: uid(), owner_id: u.id, status: 'pending', plan: 'trial', plan_until: null, approved_at: null, created_at: now() };
         fields.forEach(f => { s[f] = data[f]; }); if (s.accepting === undefined) s.accepting = true; db.salons.push(s);
       }
       save(db); return s;
@@ -132,7 +131,7 @@
       const db = load(); const u = need(db);
       const salon = db.salons.find(x => x.id === salon_id); if (!salon) throw new Error('NOT_FOUND');
       const owner = ownsSalon(db, u, salon_id);
-      if (!owner && (salon.status !== 'active' || salon.accepting === false)) throw new Error('NOT_ACCEPTING');
+      if (!owner && (salon.status !== 'active' || salon.accepting === false || (salon.plan_until && salon.plan_until < new Date().toISOString().slice(0, 10)))) throw new Error('NOT_ACCEPTING');
       const isWalk = !!(owner && walk_in);
       const sv = db.services.find(x => x.id === service_id && x.salon_id === salon_id); if (!sv) throw new Error('NOT_FOUND');
       const end_at = new Date(new Date(start_at).getTime() + sv.duration * 60000).toISOString();
@@ -156,9 +155,14 @@
     },
 
     async adminSalons() { const db = load(); need(db, 'admin');
-      return db.salons.map(s => ({ ...s, owner_name: (db.users.find(u => u.id === s.owner_id) || {}).name, owner_email: (db.users.find(u => u.id === s.owner_id) || {}).email })); },
+      return db.salons.map(s => ({ ...s, owner_name: (db.users.find(u => u.id === s.owner_id) || {}).name, owner_email: (db.users.find(u => u.id === s.owner_id) || {}).email, owner_phone: (db.users.find(u => u.id === s.owner_id) || {}).phone })); },
     async adminSetSalon(id, patch) { const db = load(); const u = need(db, 'admin'); if (u.role !== 'admin') throw new Error('FORBIDDEN');
-      const s = db.salons.find(x => x.id === id); ['status', 'plan', 'plan_until'].forEach(f => { if (f in patch) s[f] = patch[f]; }); save(db); return s; },
+      const s = db.salons.find(x => x.id === id); ['status', 'plan', 'plan_until'].forEach(f => { if (f in patch) s[f] = patch[f]; });
+      if (s.status === 'active' && !s.approved_at) { // first approval starts the free trial
+        s.approved_at = now();
+        if (s.plan === 'trial' && !s.plan_until) s.plan_until = addDays(new Date(), (window.TERMINI_CONFIG || {}).TRIAL_DAYS || 30).toISOString().slice(0, 10);
+      }
+      save(db); return s; },
     async adminUsers() { const db = load(); const u = need(db, 'admin'); if (u.role !== 'admin') throw new Error('FORBIDDEN'); return db.users.map(strip); },
     async adminStats() {
       const db = load(); const u = need(db, 'admin'); if (u.role !== 'admin') throw new Error('FORBIDDEN');

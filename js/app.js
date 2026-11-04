@@ -468,10 +468,52 @@
 
   // ---------- Business ----------
   async function bizSalon() { S.salon = await DB().mySalon(); return S.salon; }
+  const TRIAL = C.TRIAL_DAYS || 30;
+  const fmtDate = v => { if (!v) return '—'; const d = typeof v === 'string' && v.length === 10 ? fromYmd(v) : new Date(v); return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`; };
+  const isExpired = s => !!(s.plan_until && fromYmd(s.plan_until) < fromYmd(ymd(new Date())));
+  const fill = (k, o) => Object.entries(o).reduce((str, [a, b]) => str.split('{' + a + '}').join(b), t(k));
+  const waLink = (phone, text) => `https://wa.me/${phone ? waNumber(phone) : ''}?text=${encodeURIComponent(text)}`;
   function salonBanner(s) {
-    if (s.status === 'pending') return `<div class="notice warn">${esc(t('pending_review'))}</div>`;
+    if (s.status === 'pending') return `<div class="notice warn">${esc(fill('pending_review', { days: TRIAL }))}</div>`;
     if (s.status === 'suspended') return `<div class="notice bad">${esc(t('suspended_msg'))}</div>`;
+    if (isExpired(s)) return `<div class="notice bad">${esc(fill('expired_banner', { date: fmtDate(s.plan_until) }))}
+      ${C.ADMIN_PHONE ? `<div style="margin-top:10px"><a class="btn wa sm" target="_blank" rel="noopener" href="${waLink(C.ADMIN_PHONE, fill('admin_msg', { salon: s.name }))}">${esc(t('contact_admin'))}</a></div>` : ''}</div>`;
     return '';
+  }
+  // Setup checklist shown until everything is ready
+  function setupChecklist(s, services, staff) {
+    const hasHours = (s.hours || []).some(Boolean);
+    const steps = [
+      [t('step_created'), true, ''],
+      [t('step_hours'), hasHours, 'biz-salon'],
+      [t('step_services'), services.some(x => x.active !== false), 'biz-services'],
+      [t('step_staff'), staff.some(p => p.active !== false), 'biz-staff'],
+      [t('step_approval'), s.status === 'active', '']
+    ];
+    const done = steps.filter(x => x[1]).length;
+    if (done === steps.length) return '';
+    return `<div class="card" style="margin-top:12px">
+      <div class="row between"><span class="title">${esc(t('setup_title2'))}</span><span class="pill info">${esc(fill('setup_progress', { a: done, b: steps.length }))}</span></div>
+      <div style="height:8px;border-radius:4px;background:var(--accent-softer);margin:10px 0 6px;overflow:hidden"><div style="height:8px;width:${Math.round(done / steps.length * 100)}%;background:var(--accent)"></div></div>
+      ${steps.map(([label, ok, route]) => `<${route && !ok ? `button data-go="${route}"` : 'div'} class="row" style="width:100%;border:0;background:none;padding:9px 0;text-align:left;font:inherit;color:inherit;${route && !ok ? 'cursor:pointer' : ''}">
+        <span style="width:26px;height:26px;border-radius:13px;flex:none;display:grid;place-items:center;${ok ? 'background:var(--ok-soft);color:var(--ok)' : 'border:2px solid var(--line)'}">${ok ? I.check.replace('<svg', '<svg width="14" height="14"') : ''}</span>
+        <span class="grow" style="font-weight:${ok ? 600 : 800};${ok ? 'color:var(--muted);text-decoration:line-through' : ''}">${esc(label)}</span>
+        ${!ok && route ? `<span style="color:var(--accent);font-weight:800">›</span>` : !ok ? `<span class="pill warn">${esc(t('step_wait'))}</span>` : ''}
+      </${route && !ok ? 'button' : 'div'}>`).join('')}
+    </div>`;
+  }
+  function bindChecklist() { $$('[data-go]').forEach(b => b.onclick = () => go(b.dataset.go)); }
+  // One-time "you're approved" message for the owner (per device)
+  function approvalNotice(s) {
+    if (s.status !== 'active' || !s.approved_at) return;
+    if (Date.now() - new Date(s.approved_at).getTime() > 30 * 86400000) return;
+    const key = 'termini_approved_seen_' + s.id; if (store.get(key)) return; store.set(key, '1');
+    sheet(`<div class="success">
+      <div class="big">${I.check.replace('<svg', '<svg width="30" height="30"')}</div>
+      <h2 style="margin:0 0 6px">${esc(t('approved_title'))}</h2>
+      <p class="muted" style="margin:0 0 6px">${esc(t('approved_body'))}</p>
+      ${s.plan === 'trial' && s.plan_until ? `<p style="margin:0 0 16px;font-weight:700">${esc(fill('trial_until', { date: fmtDate(s.plan_until) }))}</p>` : ''}
+      <button class="btn accent block" data-close>${esc(t('start_btn'))}</button></div>`);
   }
   const DEFAULT_HOURS = [null, { open: '09:00', close: '19:00' }, { open: '09:00', close: '19:00' }, { open: '09:00', close: '19:00' }, { open: '09:00', close: '19:00' }, { open: '09:00', close: '19:00' }, { open: '09:00', close: '17:00' }];
 
@@ -514,7 +556,7 @@
   }
   function viewBizSetup() {
     shell(`<h1>${esc(t('setup_title'))}</h1><p class="sub">${esc(t('setup_sub'))}</p><div class="card">${salonForm(null)}</div>`);
-    bindSalonForm(null, () => go('biz-services', {}, true));
+    bindSalonForm(null, () => go('biz-agenda', {}, true));
   }
 
   let agendaDate = ymd(new Date()), agendaStaff = '';
@@ -590,8 +632,7 @@
         <div class="grow"><div class="muted small" style="font-weight:700">${esc(s.name)}</div><h1 style="margin:0">${esc(longDate(d0))}</h1></div>
         <button class="online ${accepting ? 'on' : 'off'}" id="onl" aria-pressed="${accepting}" title="${esc(t(accepting ? 'accepting_on' : 'accepting_off'))}"><span class="dot"></span>${esc(t(accepting ? 'online' : 'offline'))}</button>
       </div>
-      ${!staff.length ? `<div class="notice info" style="margin-top:12px">${esc(t('min_staff'))}</div>` : ''}
-      ${!svcs.length ? `<div class="notice info" style="margin-top:12px">${esc(t('min_services'))}</div>` : ''}
+      ${setupChecklist(s, services, staffAll)}
       <div class="chips" style="margin-top:12px">${days.map(d => `<button class="chip" style="padding:7px 0;width:54px;display:flex;flex-direction:column;align-items:center;line-height:1.15;${ymd(d) === agendaDate ? 'background:var(--accent);color:#fff' : ''}" data-day="${ymd(d)}"><span style="font-size:11px;opacity:.8">${esc(ymd(d) === ymd(new Date()) ? t('today') : t('days_short')[d.getDay()])}</span><b style="font-size:17px">${d.getDate()}</b></button>`).join('')}</div>
       <div class="stats">
         <div class="stat accent"><div class="v">${live.length}</div><div class="l">${esc(t('total_bookings')).toLowerCase()}</div></div>
@@ -637,6 +678,7 @@
       });
     });
     const wk = $('#walk'); if (wk) wk.onclick = () => walkInSheet(s, svcs, staff);
+    bindChecklist(); approvalNotice(s);
   }
 
   async function walkInSheet(s, svcs, staff) {
@@ -744,12 +786,12 @@
   async function viewBizSalon() {
     loading();
     const s = await bizSalon(); if (!s) return viewBizSetup();
-    const expired = s.plan_until && fromYmd(s.plan_until) < fromYmd(ymd(new Date()));
+    const expired = isExpired(s);
     shell(`${salonBanner(s)}
       <h1>${esc(t('settings'))}</h1>
       <div class="card row" style="margin:10px 0">
         <div class="grow"><div class="muted small">${esc(t('plan'))}</div><div class="title">${esc(t('plan_' + (expired ? 'expired' : s.plan)))}</div></div>
-        <div style="text-align:right"><div class="muted small">${esc(t('plan_until'))}</div><div class="title">${esc(s.plan_until || '—')}</div></div>
+        <div style="text-align:right"><div class="muted small">${esc(t('plan_until'))}</div><div class="title">${esc(s.plan_until ? fmtDate(s.plan_until) : t('trial_after_approval'))}</div></div>
         ${statusPill(s.status)}
       </div>
       <div class="card">${salonForm(s)}</div>`);
@@ -770,25 +812,41 @@
       </div>
       <h2>${esc(t('pending_salons'))} (${pending.length})</h2>
       <div class="list">${pending.length ? pending.map(adminSalonCard).join('') : '<div class="empty">—</div>'}</div>`);
-    bindAdminSalonActions(viewAdmDash);
+    bindAdminSalonActions(viewAdmDash, salons);
   }
   function adminSalonCard(s) {
-    const expired = s.plan_until && fromYmd(s.plan_until) < fromYmd(ymd(new Date()));
+    const expired = isExpired(s), phone = s.owner_phone || s.phone, first = (s.owner_name || '').split(' ')[0];
     return `<div class="card">
-      <div class="row between"><div class="grow"><div class="title ellipsis">${esc(s.name)}</div><div class="muted small ellipsis">${esc(s.owner_name || '')} · ${esc(s.owner_email || '')}</div></div>${statusPill(s.status)}</div>
+      <div class="row between"><div class="grow"><div class="title ellipsis">${esc(s.name)}</div><div class="muted small ellipsis">${esc(s.owner_name || '')} · ${esc(s.owner_email || '')}</div></div>${expired && s.status === 'active' ? `<span class="pill bad"><span class="dot"></span>${esc(t('plan_expired'))}</span>` : statusPill(s.status)}</div>
       <div class="muted small" style="margin-top:4px">${esc(catLabel(s.category))} · ${esc(s.city)} · ${esc(s.phone || '')}</div>
-      <div class="small" style="margin-top:4px">${esc(t('plan'))}: <b>${esc(t('plan_' + (expired ? 'expired' : s.plan)))}</b> · ${esc(t('plan_until'))} <b>${esc(s.plan_until || '—')}</b></div>
+      <div class="small" style="margin-top:4px">${esc(t('plan'))}: <b>${esc(t('plan_' + (expired ? 'expired' : s.plan)))}</b> · ${esc(t('plan_until'))} <b>${esc(s.plan_until ? fmtDate(s.plan_until) : t('trial_after_approval'))}</b></div>
       <div class="actions">
+        ${phone && s.status !== 'pending' ? `<a class="btn wa sm" target="_blank" rel="noopener" href="${waLink(phone, expired ? fill('expired_msg', { name: first, salon: s.name, date: fmtDate(s.plan_until) }) : '')}">${esc(t(expired ? 'remind_payment' : 'contact_owner'))}</a>` : ''}
         ${s.status === 'pending' ? `<button class="btn primary sm" data-act="approve" data-id="${s.id}">${esc(t('approve'))}</button>` : ''}
         ${s.status === 'active' ? `<button class="btn danger sm" data-act="suspend" data-id="${s.id}">${esc(t('suspend'))}</button>` : ''}
         ${s.status === 'suspended' ? `<button class="btn ghost sm" data-act="approve" data-id="${s.id}">${esc(t('activate'))}</button>` : ''}
         <button class="btn gold sm" data-act="paid" data-id="${s.id}" data-until="${esc(s.plan_until || '')}">${esc(t('mark_paid'))}</button>
       </div></div>`;
   }
-  function bindAdminSalonActions(refresh) {
+  function bindAdminSalonActions(refresh, salons) {
     $$('[data-act]').forEach(b => b.onclick = () => guard(async () => {
       const id = b.dataset.id, a = b.dataset.act;
-      if (a === 'approve') await DB().adminSetSalon(id, { status: 'active' });
+      if (a === 'approve') {
+        const before = (salons || []).find(x => x.id === id) || {};
+        const s2 = await DB().adminSetSalon(id, { status: 'active' });
+        if (before.status === 'pending') {
+          const phone = before.owner_phone || before.phone, first = (before.owner_name || '').split(' ')[0];
+          const msg = fill('approve_msg', { name: first, salon: before.name, date: fmtDate(s2.plan_until), url: appUrl() });
+          sheet(`<div class="success">
+            <div class="big">${I.check.replace('<svg', '<svg width="30" height="30"')}</div>
+            <h2 style="margin:0 0 4px">${esc(t('approved_admin'))}: ${esc(before.name)}</h2>
+            <p class="muted" style="margin:0 0 16px">${esc(fill('trial_until', { date: fmtDate(s2.plan_until) }))}</p>
+            ${phone ? `<a class="btn wa block" target="_blank" rel="noopener" href="${waLink(phone, msg)}">${I.wa.replace('<svg', '<svg width="18" height="18"')}${esc(t('notify_owner'))}</a>
+            <div class="muted small" style="margin:8px 0 12px">${esc(t('notify_hint'))}</div>` : ''}
+            <button class="btn ghost block" data-close>${esc(t('done_btn'))}</button></div>`);
+          return refresh();
+        }
+      }
       if (a === 'suspend') await DB().adminSetSalon(id, { status: 'suspended' });
       if (a === 'paid') {
         const today = fromYmd(ymd(new Date())), cur = b.dataset.until ? fromYmd(b.dataset.until) : today;
@@ -807,7 +865,7 @@
       <div class="chips" style="margin-top:8px">${['', 'pending', 'active', 'suspended'].map(f => `<button class="chip ${admFilter === f ? 'on' : ''}" data-f="${f}">${esc(f ? t('status_' + f) : t('filter_all'))} (${f ? salons.filter(s => s.status === f).length : salons.length})</button>`).join('')}</div>
       <div class="list" style="margin-top:8px">${list.length ? list.map(adminSalonCard).join('') : '<div class="empty">—</div>'}</div>`);
     $$('[data-f]').forEach(b => b.onclick = () => { admFilter = b.dataset.f; viewAdmSalons(); });
-    bindAdminSalonActions(viewAdmSalons);
+    bindAdminSalonActions(viewAdmSalons, salons);
   }
   async function viewAdmUsers() {
     loading();

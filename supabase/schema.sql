@@ -32,9 +32,11 @@ create table if not exists public.salons (
   plan        text not null default 'trial' check (plan in ('trial','pro')),
   plan_until  date,
   accepting   boolean not null default true,   -- owner's "Online" switch
+  approved_at timestamptz,                      -- first approval; the free trial starts here
   created_at  timestamptz not null default now()
 );
 alter table public.salons add column if not exists accepting boolean not null default true;
+alter table public.salons add column if not exists approved_at timestamptz;
 create unique index if not exists salons_one_per_owner on public.salons(owner_id);  -- one salon per business account
 create index if not exists salons_status_city on public.salons(status, city);
 
@@ -126,17 +128,21 @@ create trigger profiles_protect before update on public.profiles
   for each row execute function public.protect_profile();
 
 -- Owners can't approve themselves or change their plan.
+-- The 30-day free trial starts on the FIRST approval (pending -> active).
 create or replace function public.protect_salon() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
   if auth.uid() is not null and not public.is_admin() then
     if tg_op = 'INSERT' then
-      new.owner_id := auth.uid(); new.status := 'pending'; new.plan := 'trial'; new.plan_until := current_date + 30;
+      new.owner_id := auth.uid(); new.status := 'pending'; new.plan := 'trial'; new.plan_until := null; new.approved_at := null;
     else
-      new.owner_id := old.owner_id; new.status := old.status; new.plan := old.plan; new.plan_until := old.plan_until;
+      new.owner_id := old.owner_id; new.status := old.status; new.plan := old.plan;
+      new.plan_until := old.plan_until; new.approved_at := old.approved_at;
     end if;
-  elsif tg_op = 'INSERT' and new.plan_until is null then
-    new.plan_until := current_date + 30;
+  end if;
+  if new.status = 'active' and new.approved_at is null then
+    new.approved_at := now();
+    if new.plan = 'trial' and new.plan_until is null then new.plan_until := current_date + 30; end if;
   end if;
   return new;
 end $$;
@@ -158,7 +164,7 @@ begin
     select * into sl from public.salons where id = new.salon_id;
     if not found then raise exception 'NOT_FOUND'; end if;
     is_owner := auth.uid() is null or public.is_admin() or sl.owner_id = auth.uid();
-    if not is_owner and (sl.status <> 'active' or not sl.accepting) then
+    if not is_owner and (sl.status <> 'active' or not sl.accepting or (sl.plan_until is not null and sl.plan_until < current_date)) then
       raise exception 'NOT_ACCEPTING';
     end if;
     select * into sv from public.services where id = new.service_id and salon_id = new.salon_id and active;
@@ -232,7 +238,9 @@ drop policy if exists profiles_update on public.profiles;
 create policy profiles_update on public.profiles for update using (id = auth.uid() or public.is_admin());
 
 drop policy if exists salons_select on public.salons;
-create policy salons_select on public.salons for select using (status = 'active' or owner_id = auth.uid() or public.is_admin());
+-- Clients see only approved salons whose plan has not expired
+create policy salons_select on public.salons for select using (
+  (status = 'active' and (plan_until is null or plan_until >= current_date)) or owner_id = auth.uid() or public.is_admin());
 drop policy if exists salons_insert on public.salons;
 create policy salons_insert on public.salons for insert with check (
   owner_id = auth.uid() and exists (select 1 from public.profiles where id = auth.uid() and role = 'business'));

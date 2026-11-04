@@ -25,7 +25,7 @@ window.I18N = {
     service_name: 'Emri i shërbimit', price: 'Çmimi', duration: 'Kohëzgjatja (min)', staff_name: 'Emri', active: 'Aktiv',
     open: 'Hap', close: 'Mbyll', days: ['E diel','E hënë','E martë','E mërkurë','E enjte','E premte','E shtunë'],
     days_short: ['Die','Hën','Mar','Mër','Enj','Pre','Sht'],
-    pending_review: 'Salloni yt pret miratimin nga admini. Mund të përgatisësh shërbimet dhe stafin ndërkohë.',
+    pending_review: 'Salloni yt pret miratimin nga admini. Prova falas {days}-ditore fillon ditën që miratohet. Ndërkohë përgatit sallonin më poshtë.',
     suspended_msg: 'Salloni është pezulluar. Kontakto administratorin.', plan: 'Paketa', plan_until: 'Vlen deri',
     plan_trial: 'Provë falas', plan_pro: 'Pro', plan_expired: 'Skaduar',
     dashboard: 'Paneli', salons: 'Sallonet', users: 'Përdoruesit', approve: 'Mirato', suspend: 'Pezullo', activate: 'Aktivizo',
@@ -48,7 +48,15 @@ window.I18N = {
     occupied: 'e zënë', online: 'Online', offline: 'Offline', all_staff: 'Të gjithë', not_accepting: 'Ky sallon nuk po pranon rezervime online tani.',
     accepting_on: 'Rezervimet online janë hapur', accepting_off: 'Rezervimet online janë mbyllur', client_name: 'Emri i klientit', optional: 'opsionale',
     free_share_msg: 'Kemi orë të lira sot te {salon}: {times}. Rezervo këtu: {url}', more_actions: 'Veprime', next_day: 'Nesër',
-    no_free_today: 'Asnjë orë e lirë sot', categories: 'Kategoritë', all_results: 'Rezultatet', walk_in_label: 'pa termin', time_label: 'Ora', months: ['jan', 'shk', 'mar', 'pri', 'maj', 'qer', 'korr', 'gush', 'sht', 'tet', 'nën', 'dhj'], note_label: 'Shënim', status_label: 'Statusi'
+    no_free_today: 'Asnjë orë e lirë sot', categories: 'Kategoritë', all_results: 'Rezultatet', walk_in_label: 'pa termin', time_label: 'Ora', months: ['jan', 'shk', 'mar', 'pri', 'maj', 'qer', 'korr', 'gush', 'sht', 'tet', 'nën', 'dhj'], note_label: 'Shënim', status_label: 'Statusi', expired_banner: 'Paketa skadoi më {date}. Salloni nuk shfaqet te klientët derisa të rinovohet.', contact_admin: 'Shkruaji administratorit',
+    approved_title: 'Salloni yt u miratua!', approved_body: 'Tani klientët të gjejnë dhe mund të rezervojnë online.', trial_until: 'Prova falas vlen deri më {date}.',
+    start_btn: 'Fillo', trial_after_approval: 'pas miratimit', approved_admin: 'U miratua', notify_owner: 'Njofto pronarin në WhatsApp',
+    notify_hint: 'Hapet WhatsApp me mesazhin gati — ti vetëm shtyp Dërgo.', contact_owner: 'WhatsApp', remind_payment: 'Kujto pagesën',
+    approve_msg: 'Përshëndetje {name}! Salloni juaj "{salon}" u miratua në Termini. Klientët tani mund të rezervojnë online. Prova falas vlen deri më {date}. Hyni këtu: {url}',
+    expired_msg: 'Përshëndetje {name}, paketa e sallonit "{salon}" në Termini skadoi më {date} dhe salloni nuk shfaqet te klientët. Për ta rinovuar, më shkruani këtu. Faleminderit!',
+    admin_msg: 'Përshëndetje, dua të rinovoj paketën për sallonin "{salon}" në Termini.',
+    setup_title2: 'Përgatit sallonin', setup_progress: '{a} nga {b} gati', step_created: 'Llogaria dhe salloni', step_hours: 'Orari i punës',
+    step_services: 'Shërbimet', step_staff: 'Stafi', step_approval: 'Miratimi nga admini', step_wait: 'në pritje'
   },
   en: {
     tagline: 'Book your barber or salon in seconds',
@@ -75,7 +83,7 @@ window.I18N = {
     service_name: 'Service name', price: 'Price', duration: 'Duration (min)', staff_name: 'Name', active: 'Active',
     open: 'Open', close: 'Close', days: ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
     days_short: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
-    pending_review: 'Your salon is waiting for admin approval. You can set up services and staff meanwhile.',
+    pending_review: 'Your salon is waiting for admin approval. The {days}-day free trial starts the day it is approved. Meanwhile, get your salon ready below.',
     suspended_msg: 'This salon is suspended. Contact the administrator.', plan: 'Plan', plan_until: 'Valid until',
     plan_trial: 'Free trial', plan_pro: 'Pro', plan_expired: 'Expired',
     dashboard: 'Dashboard', salons: 'Salons', users: 'Users', approve: 'Approve', suspend: 'Suspend', activate: 'Activate',
@@ -98,6 +106,14 @@ window.I18N = {
     occupied: 'booked', online: 'Online', offline: 'Offline', all_staff: 'Everyone', not_accepting: 'This salon is not taking online bookings right now.',
     accepting_on: 'Online booking is on', accepting_off: 'Online booking is off', client_name: 'Client name', optional: 'optional',
     free_share_msg: 'We have free times today at {salon}: {times}. Book here: {url}', more_actions: 'Actions', next_day: 'Tomorrow',
-    no_free_today: 'No free times today', categories: 'Categories', all_results: 'Results', walk_in_label: 'walk-in', time_label: 'Time', months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], note_label: 'Note', status_label: 'Status'
+    no_free_today: 'No free times today', categories: 'Categories', all_results: 'Results', walk_in_label: 'walk-in', time_label: 'Time', months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], note_label: 'Note', status_label: 'Status', expired_banner: 'Plan expired on {date}. The salon is hidden from clients until it is renewed.', contact_admin: 'Message the administrator',
+    approved_title: 'Your salon is approved!', approved_body: 'Clients can now find you and book online.', trial_until: 'Free trial valid until {date}.',
+    start_btn: 'Start', trial_after_approval: 'after approval', approved_admin: 'Approved', notify_owner: 'Notify the owner on WhatsApp',
+    notify_hint: 'WhatsApp opens with the message ready — just tap Send.', contact_owner: 'WhatsApp', remind_payment: 'Payment reminder',
+    approve_msg: 'Hello {name}! Your salon "{salon}" is approved on Termini. Clients can now book online. Free trial valid until {date}. Open the app: {url}',
+    expired_msg: 'Hello {name}, the plan for "{salon}" on Termini expired on {date} and the salon is hidden from clients. To renew, reply here. Thank you!',
+    admin_msg: 'Hello, I would like to renew the plan for "{salon}" on Termini.',
+    setup_title2: 'Get your salon ready', setup_progress: '{a} of {b} done', step_created: 'Account and salon', step_hours: 'Opening hours',
+    step_services: 'Services', step_staff: 'Staff', step_approval: 'Admin approval', step_wait: 'waiting'
   }
 };

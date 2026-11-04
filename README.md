@@ -7,7 +7,9 @@ A booking app (installable PWA) for barbers, beauty salons, nail studios and spa
 **Three types of user**
 - **Client:** the home screen shows category tiles and "Free now near you", with the first free times on each salon card, bookable in one tap. Booking uses a 3-step flow: staff, days with availability dots (green/yellow/red), and times grouped into morning, afternoon and evening. After booking, clients can **Add to calendar** (.ics with a reminder 2 hours before, free). They can see and cancel their bookings. Payment happens at the salon.
 - **Business:** sets up the salon (info and opening hours), services (price, duration), and staff. The agenda has **Now / Later / Earlier** sections, stats (bookings, revenue, % booked), a staff filter, and one-tap Complete and WhatsApp reminder buttons. **Free-time cards** have a "Share" button that posts the free hours on WhatsApp. **Walk-in client** adds someone without the app. An **Online/Offline** switch stops online bookings.
-- **Admin (you):** approves new salons, suspends them, and tracks each salon's plan (30-day free trial, then mark "+30 days (paid)" when a salon pays you). Also sees all users and stats.
+- **Admin (you):** approves new salons, suspends them, and tracks each salon's plan. The **30-day free trial starts the day you approve** the salon. Right after approval, a **"Notify the owner on WhatsApp"** button opens a ready message. When a salon pays you, tap **"+30 days (paid)"**. A salon whose plan has **expired is hidden from clients automatically** and can't take online bookings; you get a **"Payment reminder"** WhatsApp button. Also sees all users and stats.
+
+**New salon onboarding:** the owner signs up as Business, creates the salon, and sees a checklist (account → hours → services → staff → admin approval) with a progress bar. When approved, the owner sees an "Your salon is approved!" message with the trial end date the next time they open the app. Set `ADMIN_PHONE` in `config.js` so owners with an expired plan get a button to WhatsApp you.
 
 ## Cost: €0
 
