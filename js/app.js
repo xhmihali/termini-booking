@@ -122,7 +122,7 @@
     app().innerHTML = `
       <div class="wrap ${opts.cta ? 'has-cta' : ''} ${opts.fab ? 'has-fab' : ''}">
         <header class="top">
-          ${opts.back ? `<button class="back" data-back aria-label="${esc(t('back'))}">${I.back}</button>` : `<div class="brand"><div class="brand-mark">${I.logo}</div>${esc(C.APP_NAME || 'Termini')}</div>`}
+          ${opts.back ? `<button class="back" data-back aria-label="${esc(t('back'))}">${I.back}</button>` : `<div class="brand"><img class="brand-mark" src="icons/icon.svg" alt="" width="34" height="34">${esc(C.APP_NAME || 'Termini')}</div>`}
           <div class="sp"></div>${opts.center ? opts.center + '<div class="sp"></div>' : ''}
           ${LIVE ? '' : `<span class="badge-demo" title="${esc(t('demo_hint'))}">${esc(t('demo_mode'))}</span>`}
           <button class="lang" data-lang>${lang === 'sq' ? 'EN' : 'SQ'}</button>
@@ -167,7 +167,7 @@
         <div style="margin-top:10px;text-align:center"><button class="linkbtn small" data-reset>${esc(t('reset_demo'))}</button></div>
       </div>` : '';
     shell(`
-      <div class="hero"><h1>${esc(C.APP_NAME || 'Termini')}</h1><p>${esc(t('tagline'))}</p></div>
+      <div class="hero"><div class="grow"><h1>${esc(C.APP_NAME || 'Termini')}</h1><p>${esc(t('tagline'))}</p></div><img class="hero-logo" src="icons/icon.svg" alt="" width="88" height="88"></div>
       <div class="card">
         <div class="seg"><button class="${mode === 'login' ? 'on' : ''}" data-mode="login">${esc(t('login'))}</button><button class="${mode === 'register' ? 'on' : ''}" data-mode="register">${esc(t('register'))}</button></div>
         <form id="authf" novalidate>
