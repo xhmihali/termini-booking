@@ -2,9 +2,11 @@
 
 A booking app (installable PWA) for barbers, beauty salons, nail studios and spas. Albanian and English.
 
+**Design:** "Fresh" (version B): light, friendly, blue + coral, Plus Jakarta Sans font (Google Fonts, free).
+
 **Three types of user**
-- **Client:** finds salons by city or type, picks a service, staff member, day and free time, and books. They can see and cancel their bookings. Payment happens at the salon.
-- **Business:** sets up the salon (info and opening hours), services (price, duration), and staff. The daily agenda lets them mark bookings Complete or No-show, cancel them, and send a WhatsApp reminder or call the client. They also see daily and weekly revenue.
+- **Client:** the home screen shows category tiles and "Free now near you", with the first free times on each salon card, bookable in one tap. Booking uses a 3-step flow: staff, days with availability dots (green/yellow/red), and times grouped into morning, afternoon and evening. After booking, clients can **Add to calendar** (.ics with a reminder 2 hours before, free). They can see and cancel their bookings. Payment happens at the salon.
+- **Business:** sets up the salon (info and opening hours), services (price, duration), and staff. The agenda has **Now / Later / Earlier** sections, stats (bookings, revenue, % booked), a staff filter, and one-tap Complete and WhatsApp reminder buttons. **Free-time cards** have a "Share" button that posts the free hours on WhatsApp. **Walk-in client** adds someone without the app. An **Online/Offline** switch stops online bookings.
 - **Admin (you):** approves new salons, suspends them, and tracks each salon's plan (30-day free trial, then mark "+30 days (paid)" when a salon pays you). Also sees all users and stats.
 
 ## Cost: €0

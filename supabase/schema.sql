@@ -31,8 +31,10 @@ create table if not exists public.salons (
   status      text not null default 'pending' check (status in ('pending','active','suspended')),
   plan        text not null default 'trial' check (plan in ('trial','pro')),
   plan_until  date,
+  accepting   boolean not null default true,   -- owner's "Online" switch
   created_at  timestamptz not null default now()
 );
+alter table public.salons add column if not exists accepting boolean not null default true;
 create unique index if not exists salons_one_per_owner on public.salons(owner_id);  -- one salon per business account
 create index if not exists salons_status_city on public.salons(status, city);
 
@@ -72,12 +74,14 @@ create table if not exists public.bookings (
   staff_name   text not null default '',
   client_name  text not null default '',
   client_phone text not null default '',
+  walk_in      boolean not null default false,  -- added by the salon for a client without the app
   created_at   timestamptz not null default now(),
   constraint bookings_end_after_start check (end_at > start_at),
   -- The database itself refuses two active bookings for the same staff member at overlapping times
   constraint bookings_no_overlap exclude using gist (staff_id with =, tstzrange(start_at, end_at) with &&)
     where (status in ('confirmed','completed'))
 );
+alter table public.bookings add column if not exists walk_in boolean not null default false;
 create index if not exists bookings_salon_time on public.bookings(salon_id, start_at);
 create index if not exists bookings_client on public.bookings(client_id, start_at);
 
@@ -148,13 +152,14 @@ language plpgsql security definer set search_path = public as $$
 declare
   sv public.services; st public.staff; sl public.salons; pr public.profiles;
   tz constant text := 'Europe/Tirane';
-  loc_start timestamp; loc_end timestamp; h jsonb;
+  loc_start timestamp; loc_end timestamp; h jsonb; is_owner boolean;
 begin
   if tg_op = 'INSERT' then
     select * into sl from public.salons where id = new.salon_id;
     if not found then raise exception 'NOT_FOUND'; end if;
-    if sl.status <> 'active' and auth.uid() is not null and not public.is_admin() and sl.owner_id <> auth.uid() then
-      raise exception 'SALON_NOT_ACTIVE';
+    is_owner := auth.uid() is null or public.is_admin() or sl.owner_id = auth.uid();
+    if not is_owner and (sl.status <> 'active' or not sl.accepting) then
+      raise exception 'NOT_ACCEPTING';
     end if;
     select * into sv from public.services where id = new.service_id and salon_id = new.salon_id and active;
     if not found then raise exception 'NOT_FOUND'; end if;
@@ -174,12 +179,16 @@ begin
 
     new.price := sv.price; new.status := 'confirmed';
     new.service_name := sv.name; new.staff_name := st.name;
-    new.client_name := coalesce(pr.name, ''); new.client_phone := coalesce(pr.phone, '');
+    if is_owner and new.walk_in then
+      new.client_name := coalesce(nullif(trim(new.client_name), ''), '—'); new.client_phone := coalesce(new.client_phone, '');
+    else
+      new.walk_in := false; new.client_name := coalesce(pr.name, ''); new.client_phone := coalesce(pr.phone, '');
+    end if;
   else
     new.id := old.id; new.salon_id := old.salon_id; new.service_id := old.service_id; new.staff_id := old.staff_id;
     new.client_id := old.client_id; new.start_at := old.start_at; new.end_at := old.end_at; new.price := old.price;
     new.service_name := old.service_name; new.staff_name := old.staff_name; new.client_name := old.client_name;
-    new.client_phone := old.client_phone; new.created_at := old.created_at; new.note := old.note;
+    new.client_phone := old.client_phone; new.created_at := old.created_at; new.note := old.note; new.walk_in := old.walk_in;
     if auth.uid() is not null and not public.is_admin() and not public.owns_salon(old.salon_id) then
       if new.status <> 'cancelled' or old.status <> 'confirmed' then raise exception 'FORBIDDEN'; end if;
     end if;

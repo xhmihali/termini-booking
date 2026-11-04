@@ -30,7 +30,7 @@
     void admin;
     const salon = (owner, name, category, city, address, desc, hours, status, plan) => {
       const s = { id: uid(), owner_id: owner.id, name, category, city, address, phone: owner.phone, description: desc,
-        hours, status, plan, plan_until: trialEnd, created_at: now() };
+        hours, status, plan, plan_until: trialEnd, accepting: true, created_at: now() };
       db.salons.push(s); return s;
     };
     const s1 = salon(b1, 'Berberia Elegance', 'barber', 'Tiranë', 'Rr. Myslym Shyri 24', 'Prerje klasike dhe moderne, rruajtje me peshqir të nxehtë.',
@@ -65,7 +65,7 @@
     const s = db.salons.find(x => x.id === b.salon_id) || {}, sv = db.services.find(x => x.id === b.service_id) || {},
       st = db.staff.find(x => x.id === b.staff_id) || {}, c = db.users.find(x => x.id === b.client_id) || {};
     return { ...b, salon_name: s.name, salon_phone: s.phone, salon_address: s.address, salon_city: s.city,
-      service_name: sv.name || b.service_name, staff_name: st.name || b.staff_name, client_name: c.name || b.client_name, client_phone: c.phone || b.client_phone };
+      service_name: sv.name || b.service_name, staff_name: st.name || b.staff_name, client_name: b.client_name || c.name, client_phone: b.client_phone || c.phone };
   }
   const overlaps = (a1, a2, b1, b2) => new Date(a1) < new Date(b2) && new Date(b1) < new Date(a2);
   const blocking = s => s === 'confirmed' || s === 'completed';
@@ -94,13 +94,13 @@
     async mySalon() { const db = load(); const u = need(db); return db.salons.find(s => s.owner_id === u.id) || null; },
     async saveSalon(data) {
       const db = load(); const u = need(db, 'business');
-      const fields = ['name', 'category', 'city', 'address', 'phone', 'description', 'hours'];
+      const fields = ['name', 'category', 'city', 'address', 'phone', 'description', 'hours', 'accepting'];
       let s = data.id && db.salons.find(x => x.id === data.id);
       if (s) { if (!ownsSalon(db, u, s.id)) throw new Error('FORBIDDEN'); fields.forEach(f => { if (f in data) s[f] = data[f]; }); }
       else {
         s = { id: uid(), owner_id: u.id, status: 'pending', plan: 'trial',
           plan_until: addDays(new Date(), (window.TERMINI_CONFIG || {}).TRIAL_DAYS || 30).toISOString().slice(0, 10), created_at: now() };
-        fields.forEach(f => { s[f] = data[f]; }); db.salons.push(s);
+        fields.forEach(f => { s[f] = data[f]; }); if (s.accepting === undefined) s.accepting = true; db.salons.push(s);
       }
       save(db); return s;
     },
@@ -128,14 +128,19 @@
       return load().bookings.filter(b => b.salon_id === salonId && blocking(b.status) && overlaps(b.start_at, b.end_at, from, to))
         .map(b => ({ staff_id: b.staff_id, start_at: b.start_at, end_at: b.end_at }));
     },
-    async createBooking({ salon_id, service_id, staff_id, start_at, note }) {
+    async createBooking({ salon_id, service_id, staff_id, start_at, note, walk_in, client_name, client_phone }) {
       const db = load(); const u = need(db);
+      const salon = db.salons.find(x => x.id === salon_id); if (!salon) throw new Error('NOT_FOUND');
+      const owner = ownsSalon(db, u, salon_id);
+      if (!owner && (salon.status !== 'active' || salon.accepting === false)) throw new Error('NOT_ACCEPTING');
+      const isWalk = !!(owner && walk_in);
       const sv = db.services.find(x => x.id === service_id && x.salon_id === salon_id); if (!sv) throw new Error('NOT_FOUND');
       const end_at = new Date(new Date(start_at).getTime() + sv.duration * 60000).toISOString();
       if (db.bookings.some(b => b.staff_id === staff_id && blocking(b.status) && overlaps(b.start_at, b.end_at, start_at, end_at))) throw new Error('SLOT_TAKEN');
       const stf = db.staff.find(x => x.id === staff_id && x.salon_id === salon_id && x.active !== false); if (!stf) throw new Error('NOT_FOUND');
       const b = { id: uid(), salon_id, service_id, staff_id, client_id: u.id, start_at, end_at, price: sv.price, status: 'confirmed', note: note || '',
-        service_name: sv.name, staff_name: stf.name, client_name: u.name, client_phone: u.phone, created_at: now() };
+        service_name: sv.name, staff_name: stf.name, client_name: isWalk ? (client_name || '—') : u.name, client_phone: isWalk ? (client_phone || '') : u.phone,
+        walk_in: isWalk, created_at: now() };
       db.bookings.push(b); save(db); return enrich(db, b);
     },
     async myBookings() { const db = load(); const u = need(db); return db.bookings.filter(b => b.client_id === u.id).map(b => enrich(db, b)); },

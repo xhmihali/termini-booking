@@ -14,6 +14,7 @@
     if (/Invalid login credentials/i.test(m)) throw new Error('WRONG_LOGIN');
     if (/already registered|already exists/i.test(m)) throw new Error('EMAIL_TAKEN');
     if (/Email not confirmed/i.test(m)) throw new Error('CHECK_EMAIL');
+    if (/NOT_ACCEPTING|SALON_NOT_ACTIVE/.test(m)) throw new Error('NOT_ACCEPTING');
     throw new Error(error.message || 'Error');
   }
   const q = async p => { const { data, error } = await p; fail(error); return data; };
@@ -55,7 +56,8 @@
     async getSalon(id) { return q(sb.from('salons').select('*').eq('id', id).maybeSingle()); },
     async mySalon() { return q(sb.from('salons').select('*').eq('owner_id', uidOrThrow()).maybeSingle()); },
     async saveSalon(d) {
-      const row = { name: d.name, category: d.category, city: d.city, address: d.address, phone: d.phone, description: d.description, hours: d.hours };
+      const row = { name: d.name, category: d.category, city: d.city, address: d.address, phone: d.phone, description: d.description, hours: d.hours, accepting: d.accepting };
+      Object.keys(row).forEach(k => row[k] === undefined && delete row[k]);
       if (d.id) return q(sb.from('salons').update(row).eq('id', d.id).select().single());
       return q(sb.from('salons').insert({ ...row, owner_id: uidOrThrow() }).select().single());
     },
@@ -74,10 +76,11 @@
     async deleteStaff(id) { await q(sb.from('staff').delete().eq('id', id)); },
 
     async busy(salonId, from, to) { return q(sb.rpc('busy_slots', { p_salon: salonId, p_from: from, p_to: to })); },
-    async createBooking({ salon_id, service_id, staff_id, start_at, note }) {
+    async createBooking({ salon_id, service_id, staff_id, start_at, note, walk_in, client_name, client_phone }) {
       // end_at and price are recalculated by the database trigger; values here are placeholders
       const b = await q(sb.from('bookings').insert({ salon_id, service_id, staff_id, client_id: uidOrThrow(), start_at,
-        end_at: new Date(new Date(start_at).getTime() + 60000).toISOString(), note: note || '' }).select('*, salons(name,phone,address,city)').single());
+        end_at: new Date(new Date(start_at).getTime() + 60000).toISOString(), note: note || '',
+        walk_in: !!walk_in, client_name: client_name || '', client_phone: client_phone || '' }).select('*, salons(name,phone,address,city)').single());
       return flatBooking(b);
     },
     async myBookings() {

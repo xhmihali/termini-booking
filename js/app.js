@@ -20,7 +20,7 @@
   const toMin = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
   const money = n => `${Number(n || 0).toLocaleString(lang === 'sq' ? 'de-DE' : 'en-GB')} ${C.CURRENCY || 'ALL'}`;
   const dayName = d => {
-    const today = ymd(new Date()), x = ymd(d);
+    d = new Date(d); const today = ymd(new Date()), x = ymd(d);
     if (x === today) return t('today'); if (x === ymd(addDays(new Date(), 1))) return t('tomorrow');
     return `${t('days_short')[d.getDay()]} ${d.getDate()}.${pad(d.getMonth() + 1)}`;
   };
@@ -35,7 +35,7 @@
 
   // ---------- Icons ----------
   const I = {
-    logo: '<svg viewBox="0 0 24 24" fill="none" stroke="#c99a57" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg>',
+    logo: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg>',
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
     cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
     user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
@@ -44,8 +44,26 @@
     store: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v10h16V10M3 4h18l-1 6H4L3 4Z"/><path d="M10 20v-5h4v5"/></svg>',
     chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
     back: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg>',
-    pin: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>'
+    pin: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>',
+    wa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5"/></svg>',
+    phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    calplus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></svg>',
+    sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg>',
+    sunset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 18a5 5 0 0 0-10 0M12 9V3M4.2 10.2l1.4 1.4M2 18h2M20 18h2M18.4 11.6l1.4-1.4M2 22h20"/></svg>',
+    moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>',
+    share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>'
   };
+  const CATS = ['barber', 'salon', 'nails', 'spa'];
+  const CAT_ICON = {
+    barber: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg>',
+    salon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3c-5 0-7 4-7 9v8M12 3c5 0 7 4 7 9v8M9 7c0 5 1 9 3 13M15 7c0 5-1 9-3 13"/></svg>',
+    nails: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 21V11a4 4 0 0 1 8 0v10"/><path d="M10 7V4a2 2 0 0 1 4 0v3"/></svg>',
+    spa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20c-4 0-8-3-8-7 3 0 6 2 8 5 2-3 5-5 8-5 0 4-4 7-8 7z"/><path d="M12 18c-2-3-2-8 0-12 2 4 2 9 0 12z"/></svg>'
+  };
+  const PERSON_TONES = [['var(--accent-soft)', 'var(--accent)'], ['var(--coral-soft)', 'var(--coral-ink)'], ['var(--pink-soft)', 'var(--pink)'], ['var(--ok-soft)', 'var(--ok)']];
+  const tone = i => `background:${PERSON_TONES[i % 4][0]};color:${PERSON_TONES[i % 4][1]}`;
 
   // ---------- UI helpers ----------
   function toast(msg) {
@@ -57,6 +75,7 @@
     const m = (e && e.message) || '';
     if (m === 'SLOT_TAKEN') return t('slot_taken'); if (m === 'WRONG_LOGIN') return t('wrong_login');
     if (m === 'EMAIL_TAKEN') return t('email_taken'); if (m === 'CHECK_EMAIL') return t('check_email');
+    if (m === 'NOT_ACCEPTING') return t('not_accepting');
     console.error(e); return t('error') + (m ? ': ' + m : '');
   }
   async function guard(fn) { try { return await fn(); } catch (e) { toast(errMsg(e)); } }
@@ -99,17 +118,20 @@
   function shell(content, opts = {}) {
     const nav = S.user ? NAVS[S.user.role] || [] : [];
     const active = NAV_OF[S.route] || S.route;
+    const showNav = nav.length && !opts.cta;
     app().innerHTML = `
-      <div class="wrap">
+      <div class="wrap ${opts.cta ? 'has-cta' : ''} ${opts.fab ? 'has-fab' : ''}">
         <header class="top">
-          ${opts.back ? `<button class="back" data-back>${I.back}${esc(t('back'))}</button>` : `<div class="brand"><div class="brand-mark">${I.logo}</div>${esc(C.APP_NAME || 'Termini')}</div>`}
-          <div class="sp"></div>
+          ${opts.back ? `<button class="back" data-back aria-label="${esc(t('back'))}">${I.back}</button>` : `<div class="brand"><div class="brand-mark">${I.logo}</div>${esc(C.APP_NAME || 'Termini')}</div>`}
+          <div class="sp"></div>${opts.center ? opts.center + '<div class="sp"></div>' : ''}
           ${LIVE ? '' : `<span class="badge-demo" title="${esc(t('demo_hint'))}">${esc(t('demo_mode'))}</span>`}
           <button class="lang" data-lang>${lang === 'sq' ? 'EN' : 'SQ'}</button>
         </header>
         <main>${content}</main>
       </div>
-      ${nav.length ? `<nav class="nav"><div class="in">${nav.map(([r, k, ic]) => `<button class="${active === r ? 'on' : ''}" data-nav="${r}">${ic}<span>${esc(t(k))}</span></button>`).join('')}</div></nav>` : ''}`;
+      ${opts.cta ? `<div class="cta"><div class="in">${opts.cta}</div></div>` : ''}
+      ${opts.fab && showNav ? opts.fab : ''}
+      ${showNav ? `<nav class="nav"><div class="in">${nav.map(([r, k, ic]) => `<button class="${active === r ? 'on' : ''}" data-nav="${r}" aria-label="${esc(t(k))}">${ic}<span>${esc(t(k))}</span></button>`).join('')}</div></nav>` : ''}`;
     $$('[data-nav]').forEach(b => b.onclick = () => go(b.dataset.nav));
     const bk = $('[data-back]'); if (bk) bk.onclick = () => (history.length > 1 ? history.back() : home());
     $('[data-lang]').onclick = () => { lang = lang === 'sq' ? 'en' : 'sq'; store.set('termini_lang', lang); document.documentElement.lang = lang; render(); };
@@ -177,73 +199,6 @@
 
   // ---------- Client ----------
   let exploreState = { q: '', city: '', cat: '' };
-  async function viewExplore() {
-    loading();
-    const salons = await DB().listSalons();
-    const cities = [...new Set(salons.map(s => s.city).filter(Boolean))].sort();
-    const cats = [...new Set(salons.map(s => s.category).filter(Boolean))];
-    const draw = () => {
-      const q = exploreState.q.toLowerCase();
-      const list = salons.filter(s => (!exploreState.city || s.city === exploreState.city) && (!exploreState.cat || s.category === exploreState.cat) &&
-        (!q || [s.name, s.city, s.address, s.description].join(' ').toLowerCase().includes(q)));
-      $('#salons').innerHTML = list.length ? list.map(s => `
-        <div class="card tap" data-salon="${s.id}">
-          <div class="row">
-            <div class="avatar ${esc(s.category)}">${esc(initials(s.name))}</div>
-            <div class="grow">
-              <div class="title ellipsis">${esc(s.name)}</div>
-              <div class="muted small ellipsis">${esc(catLabel(s.category))} · ${I.pin} ${esc(s.city)}, ${esc(s.address)}</div>
-            </div>
-            ${isOpenNow(s) ? `<span class="pill ok">${esc(t('open_now'))}</span>` : `<span class="pill mute">${esc(t('closed_now'))}</span>`}
-          </div>
-        </div>`).join('') : `<div class="empty">${esc(t('no_salons'))}</div>`;
-      $$('[data-salon]').forEach(c => c.onclick = () => go('salon', { id: c.dataset.salon }));
-    };
-    shell(`
-      <h1>${esc(t('explore'))}</h1>
-      <input type="search" id="q" placeholder="${esc(t('search_ph'))}" value="${esc(exploreState.q)}" style="margin:8px 0 10px">
-      <div class="chips">
-        <button class="chip ${!exploreState.city ? 'on' : ''}" data-city="">${esc(t('all_cities'))}</button>
-        ${cities.map(c => `<button class="chip ${exploreState.city === c ? 'on' : ''}" data-city="${esc(c)}">${esc(c)}</button>`).join('')}
-      </div>
-      ${cats.length > 1 ? `<div class="chips"><button class="chip ${!exploreState.cat ? 'on' : ''}" data-cat="">${esc(t('filter_all'))}</button>${cats.map(c => `<button class="chip ${exploreState.cat === c ? 'on' : ''}" data-cat="${esc(c)}">${esc(catLabel(c))}</button>`).join('')}</div>` : ''}
-      <div class="list" id="salons" style="margin-top:8px"></div>`);
-    $('#q').oninput = e => { exploreState.q = e.target.value; draw(); };
-    $$('[data-city]').forEach(b => b.onclick = () => { exploreState.city = b.dataset.city; $$('[data-city]').forEach(x => x.classList.toggle('on', x === b)); draw(); });
-    $$('[data-cat]').forEach(b => b.onclick = () => { exploreState.cat = b.dataset.cat; $$('[data-cat]').forEach(x => x.classList.toggle('on', x === b)); draw(); });
-    draw();
-  }
-
-  function hoursTable(hours) {
-    const order = [1, 2, 3, 4, 5, 6, 0], today = new Date().getDay();
-    return `<dl class="kv">${order.map(i => { const h = (hours || [])[i];
-      return `<dt style="${i === today ? 'font-weight:700;color:var(--ink)' : ''}">${esc(t('days')[i])}</dt><dd style="${i === today ? 'font-weight:700' : ''}">${h ? `${esc(h.open)} – ${esc(h.close)}` : `<span class="muted">${esc(t('closed'))}</span>`}</dd>`; }).join('')}</dl>`;
-  }
-
-  async function viewSalon() {
-    loading();
-    const s = await DB().getSalon(S.params.id); if (!s) return home();
-    const [services, staff] = await Promise.all([DB().listServices(s.id), DB().listStaff(s.id)]);
-    const svc = services.filter(x => x.active !== false);
-    shell(`
-      <div class="row" style="margin-bottom:6px"><div class="avatar ${esc(s.category)}" style="width:56px;height:56px;font-size:20px">${esc(initials(s.name))}</div>
-        <div class="grow"><h1 style="margin:0">${esc(s.name)}</h1><div class="muted small">${esc(catLabel(s.category))} · ${esc(s.city)}</div></div></div>
-      ${s.description ? `<p class="sub" style="margin-top:8px">${esc(s.description)}</p>` : ''}
-      <div class="actions" style="margin-top:0">
-        ${s.phone ? `<a class="btn ghost sm" href="${esc(telHref(s.phone))}">${esc(t('call'))}</a>` : ''}
-        <a class="btn ghost sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.name + ' ' + s.address + ' ' + s.city)}">${I.pin} ${esc(s.address)}</a>
-      </div>
-      <h2>${esc(t('services'))}</h2>
-      <div class="list">${svc.length ? svc.map(x => `
-        <div class="card row">
-          <div class="grow"><div class="title">${esc(x.name)}</div><div class="muted small">${x.duration} ${esc(t('min'))}</div></div>
-          <div class="price">${esc(money(x.price))}</div>
-          <button class="btn gold sm" data-book="${x.id}" ${staff.some(p => p.active !== false) ? '' : 'disabled'}>${esc(t('book'))}</button>
-        </div>`).join('') : `<div class="empty">—</div>`}</div>
-      ${staff.length ? `<h2>${esc(t('staff'))}</h2><div class="chips">${staff.filter(p => p.active !== false).map(p => `<span class="chip">${esc(p.name)}</span>`).join('')}</div>` : ''}
-      <h2>${esc(t('hours'))}</h2><div class="card">${hoursTable(s.hours)}</div>`, { back: true });
-    $$('[data-book]').forEach(b => b.onclick = () => go('book', { salon: s.id, service: b.dataset.book }));
-  }
 
   function genSlots(dateStr, salon, service, staff, busy, staffId) {
     const day = fromYmd(dateStr), h = (salon.hours || [])[day.getDay()]; if (!h) return [];
@@ -261,55 +216,199 @@
     return out;
   }
 
+  // First free times for a salon (cheapest active service), today or tomorrow
+  async function salonNext(s) {
+    const [services, staff] = await Promise.all([DB().listServices(s.id), DB().listStaff(s.id)]);
+    const svc = services.filter(x => x.active !== false).sort((a, b) => Number(a.price) - Number(b.price))[0];
+    const st = staff.filter(p => p.active !== false);
+    if (!svc || !st.length) return null;
+    const d0 = fromYmd(ymd(new Date()));
+    const busy = await DB().busy(s.id, d0.toISOString(), addDays(d0, 2).toISOString());
+    let day = 0, slots = genSlots(ymd(d0), s, svc, st, busy, '');
+    if (!slots.length) { day = 1; slots = genSlots(ymd(addDays(d0, 1)), s, svc, st, busy, ''); }
+    return { svc, slots: slots.slice(0, 3), day };
+  }
+
+  async function viewExplore() {
+    loading();
+    const salons = await DB().listSalons();
+    const cities = [...new Set(salons.map(s => s.city).filter(Boolean))].sort();
+    const nexts = {};
+    await Promise.all(salons.slice(0, 30).map(async s => { try { if (s.accepting !== false) nexts[s.id] = await salonNext(s); } catch (e) { /* ignore one salon */ } }));
+    const first = (S.user.name || '').split(' ')[0];
+    const draw = () => {
+      const q = exploreState.q.toLowerCase();
+      const list = salons.filter(s => (!exploreState.city || s.city === exploreState.city) && (!exploreState.cat || s.category === exploreState.cat) &&
+        (!q || [s.name, s.city, s.address, s.description, catLabel(s.category)].join(' ').toLowerCase().includes(q)));
+      const key = s => { const n = nexts[s.id]; return n && n.slots.length ? n.day * 1e13 + n.slots[0].start.getTime() : 9e15; };
+      list.sort((a, b) => key(a) - key(b));
+      $('#salons').innerHTML = list.length ? list.map(s => {
+        const n = nexts[s.id];
+        const times = n && n.slots.length
+          ? `<div class="times">${n.day ? `<span class="small" style="align-self:center;font-weight:800;color:var(--muted)">${esc(t('next_day'))}</span>` : ''}${n.slots.map((sl, i) => `<button class="tpill ${i === 0 ? 'first' : ''}" data-pick="${s.id}|${n.svc.id}|${sl.start.toISOString()}|${sl.staff_id}">${hm(sl.start)}</button>`).join('')}<button class="tpill ghost" data-open="${s.id}">${esc(t('more'))}</button></div>`
+          : `<div class="muted small" style="margin-top:10px">${esc(s.accepting === false ? t('not_accepting') : t('no_free_today'))}</div>`;
+        return `<div class="card tap" data-salon="${s.id}">
+          <div class="row">
+            <div class="avatar ${esc(s.category)}">${esc(initials(s.name))}</div>
+            <div class="grow">
+              <div class="title ellipsis">${esc(s.name)}</div>
+              <div class="muted small ellipsis">${esc(catLabel(s.category))} · ${esc(s.city)}${n ? ` · ${esc(t('from_price'))} ${esc(money(n.svc.price))}` : ''}</div>
+            </div>
+            ${isOpenNow(s) ? `<span class="pill ok">${esc(t('open_now'))}</span>` : `<span class="pill mute">${esc(t('closed_now'))}</span>`}
+          </div>${times}
+        </div>`; }).join('') : `<div class="empty">${esc(t('no_salons'))}</div>`;
+      $$('[data-salon]').forEach(c => c.onclick = () => go('salon', { id: c.dataset.salon }));
+      $$('[data-open]').forEach(b => b.onclick = e => { e.stopPropagation(); go('salon', { id: b.dataset.open }); });
+      $$('[data-pick]').forEach(b => b.onclick = e => {
+        e.stopPropagation(); const [salon, service, start, staff] = b.dataset.pick.split('|');
+        go('book', { salon, service, start, staff });
+      });
+    };
+    shell(`
+      <div class="row between" style="margin-top:4px">
+        <div><div class="muted" style="font-weight:600">${esc(t('hello'))}, ${esc(first)}</div><h1 style="margin:0">${esc(t('what_today'))}</h1></div>
+        <div class="avatar" style="background:var(--accent);color:#fff;width:46px;height:46px;border-radius:15px">${esc(initials(S.user.name))}</div>
+      </div>
+      <label class="search">${I.search.replace('<svg', '<svg width="20" height="20" style="color:var(--muted);flex:none"')}
+        <input type="search" id="q" placeholder="${esc(t('search_home'))}" value="${esc(exploreState.q)}" aria-label="${esc(t('explore'))}">
+        ${cities.length > 1 ? `<select id="city" aria-label="${esc(t('city'))}"><option value="">${esc(t('all_cities'))}</option>${cities.map(c => `<option ${exploreState.city === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>`
+          : cities.length === 1 ? `<span style="font-weight:800;color:var(--accent);font-size:13px">${esc(cities[0])}</span>` : ''}
+      </label>
+      <div class="cats">${CATS.map(c => `<button class="cat ${c} ${exploreState.cat === c ? 'on' : ''}" data-cat="${c}">${CAT_ICON[c]}<span style="text-align:center;line-height:1.15;padding:0 4px">${esc(catLabel(c))}</span></button>`).join('')}</div>
+      <h2>${esc(exploreState.q || exploreState.cat || exploreState.city ? t('all_results') : t('free_now'))}</h2>
+      <div class="list" id="salons"></div>`);
+    $('#q').oninput = e => { exploreState.q = e.target.value; draw(); };
+    const cs = $('#city'); if (cs) cs.onchange = () => { exploreState.city = cs.value; draw(); };
+    $$('[data-cat]').forEach(b => b.onclick = () => { exploreState.cat = exploreState.cat === b.dataset.cat ? '' : b.dataset.cat; viewExplore(); });
+    draw();
+  }
+
+  function hoursTable(hours) {
+    const order = [1, 2, 3, 4, 5, 6, 0], today = new Date().getDay();
+    return `<dl class="kv">${order.map(i => { const h = (hours || [])[i];
+      return `<dt style="${i === today ? 'font-weight:800;color:var(--ink)' : ''}">${esc(t('days')[i])}</dt><dd style="${i === today ? 'font-weight:800' : ''}">${h ? `${esc(h.open)} – ${esc(h.close)}` : `<span class="muted">${esc(t('closed'))}</span>`}</dd>`; }).join('')}</dl>`;
+  }
+  const stepsBar = (a, b = 3) => `<div class="steps" aria-label="${esc(t('step_of').replace('{a}', a).replace('{b}', b))}">${Array.from({ length: b }, (_, i) => `<span class="${i < a ? 'on' : ''}"></span>`).join('')}</div>`;
+
+  async function viewSalon() {
+    loading();
+    const s = await DB().getSalon(S.params.id); if (!s) return home();
+    const [services, staff] = await Promise.all([DB().listServices(s.id), DB().listStaff(s.id)]);
+    const svc = services.filter(x => x.active !== false), team = staff.filter(p => p.active !== false);
+    const canBook = team.length && s.accepting !== false && s.status === 'active';
+    shell(`
+      <div class="row" style="margin:4px 0 8px">
+        <div class="avatar ${esc(s.category)}" style="width:64px;height:64px;border-radius:20px;font-size:22px">${esc(initials(s.name))}</div>
+        <div class="grow"><h1 style="margin:0">${esc(s.name)}</h1><div class="muted small">${esc(catLabel(s.category))} · ${esc(s.city)}</div></div>
+      </div>
+      ${s.description ? `<p class="sub">${esc(s.description)}</p>` : ''}
+      <div class="actions" style="margin-top:0">
+        ${s.phone ? `<a class="btn ghost sm" href="${esc(telHref(s.phone))}">${I.phone.replace('<svg', '<svg width="16" height="16"')}${esc(t('call'))}</a>` : ''}
+        <a class="btn ghost sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.name + ' ' + s.address + ' ' + s.city)}">${I.pin} ${esc(s.address)}</a>
+      </div>
+      ${s.accepting === false ? `<div class="notice warn" style="margin-top:14px">${esc(t('not_accepting'))}</div>` : ''}
+      <h2>${esc(t('services'))}</h2>
+      <div class="list">${svc.length ? svc.map(x => `
+        <div class="card row">
+          <div class="grow"><div class="title">${esc(x.name)}</div><div class="muted small">${x.duration} ${esc(t('min'))} · <b style="color:var(--ink)">${esc(money(x.price))}</b></div></div>
+          <button class="btn accent sm" data-book="${x.id}" ${canBook ? '' : 'disabled'}>${esc(t('book'))}</button>
+        </div>`).join('') : `<div class="empty">—</div>`}</div>
+      ${team.length ? `<h2>${esc(t('staff'))}</h2><div class="chips">${team.map((p, i) => `<span class="person" style="cursor:default"><span class="ini" style="${tone(i)}">${esc(initials(p.name))}</span>${esc(p.name)}</span>`).join('')}</div>` : ''}
+      <h2>${esc(t('hours'))}</h2><div class="card">${hoursTable(s.hours)}</div>`, { back: true, center: stepsBar(1) });
+    $$('[data-book]').forEach(b => b.onclick = () => go('book', { salon: s.id, service: b.dataset.book }));
+  }
+
+  function icsHref(b) {
+    const f = d => new Date(d).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    const e = s => String(s || '').replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
+    const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Termini//EN', 'BEGIN:VEVENT', `UID:${b.id}@termini`, `DTSTAMP:${f(new Date())}`,
+      `DTSTART:${f(b.start_at)}`, `DTEND:${f(b.end_at)}`, `SUMMARY:${e(b.service_name + ' – ' + b.salon_name)}`,
+      `LOCATION:${e([b.salon_address, b.salon_city].filter(Boolean).join(', '))}`,
+      `DESCRIPTION:${e((b.staff_name ? t('with') + ' ' + b.staff_name + ' · ' : '') + money(b.price))}`,
+      'BEGIN:VALARM', 'TRIGGER:-PT2H', 'ACTION:DISPLAY', 'DESCRIPTION:Termini', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'];
+    return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(lines.join('\r\n'));
+  }
+
   async function viewBook() {
     loading();
     const salon = await DB().getSalon(S.params.salon); if (!salon) return home();
     const [services, staffAll] = await Promise.all([DB().listServices(salon.id), DB().listStaff(salon.id)]);
     const service = services.find(x => x.id === S.params.service); if (!service) return go('salon', { id: salon.id }, true);
     const staff = staffAll.filter(p => p.active !== false);
-    const days = Array.from({ length: C.BOOKING_DAYS_AHEAD || 21 }, (_, i) => addDays(new Date(), i));
-    const st = { staffId: '', date: '', slot: null };
-    st.date = ymd(days.find(d => (salon.hours || [])[d.getDay()]) || days[0]);
-    shell(`
-      <h1>${esc(t('book'))}</h1>
-      <div class="card row"><div class="grow"><div class="title">${esc(service.name)}</div><div class="muted small">${esc(salon.name)} · ${service.duration} ${esc(t('min'))}</div></div><div class="price">${esc(money(service.price))}</div></div>
-      ${staff.length > 1 ? `<h2>${esc(t('choose_staff'))}</h2><div class="chips" id="staffc">
-        <button class="chip on" data-staff="">${esc(t('anyone'))}</button>${staff.map(p => `<button class="chip" data-staff="${p.id}">${esc(p.name)}</button>`).join('')}</div>` : ''}
-      <h2>${esc(t('choose_day'))}</h2>
-      <div class="chips" id="dayc">${days.map(d => { const closed = !(salon.hours || [])[d.getDay()];
-        return `<button class="chip day ${ymd(d) === st.date ? 'on' : ''}" data-day="${ymd(d)}" ${closed ? 'disabled' : ''}><span>${esc(ymd(d) === ymd(new Date()) ? t('today') : t('days_short')[d.getDay()])}</span><b>${d.getDate()}</b><span>${pad(d.getMonth() + 1)}</span></button>`; }).join('')}</div>
-      <h2>${esc(t('choose_time'))}</h2>
-      <div id="slots"><div class="spinner"></div></div>
-      <div id="confirm" style="display:none;margin-top:16px">
-        <label class="f"><span>${esc(t('note'))}</span><textarea id="note" maxlength="300"></textarea></label>
-        <div class="muted small" style="margin-bottom:10px">${esc(t('pay_at_salon'))}</div>
-        <button class="btn gold block" id="go"></button>
-      </div>`, { back: true });
+    const today0 = fromYmd(ymd(new Date()));
+    const days = Array.from({ length: C.BOOKING_DAYS_AHEAD || 21 }, (_, i) => addDays(today0, i));
+    let busy = await DB().busy(salon.id, days[0].toISOString(), addDays(days[days.length - 1], 1).toISOString());
+    const pre = S.params.start ? new Date(S.params.start) : null;
+    const st = { staffId: S.params.staff && pre ? '' : (S.params.staff || ''), date: '', slot: null, preKey: pre ? pre.getTime() : 0 };
+    const count = d => genSlots(ymd(d), salon, service, staff, busy, st.staffId).length;
+    st.date = pre ? ymd(pre) : ymd(days.find(d => count(d) > 0) || days[0]);
 
-    const drawSlots = async () => {
-      st.slot = null; $('#confirm').style.display = 'none';
-      $('#slots').innerHTML = '<div class="spinner"></div>';
-      const d0 = fromYmd(st.date), d1 = addDays(d0, 1);
-      const busy = await DB().busy(salon.id, d0.toISOString(), d1.toISOString());
-      const slots = genSlots(st.date, salon, service, staff, busy, st.staffId);
-      $('#slots').innerHTML = slots.length ? `<div class="slots">${slots.map((s, i) => `<button class="slot" data-i="${i}">${hm(s.start)}</button>`).join('')}</div>` : `<div class="empty">${esc(t('no_slots'))}</div>`;
-      $$('.slot').forEach(b => b.onclick = () => {
-        $$('.slot').forEach(x => x.classList.remove('on')); b.classList.add('on'); st.slot = slots[+b.dataset.i];
-        const who = staff.find(p => p.id === st.slot.staff_id);
-        $('#go').textContent = `${t('confirm_booking')} · ${dayName(st.slot.start)} ${hm(st.slot.start)}${who && staff.length > 1 ? ' · ' + who.name : ''}`;
-        $('#confirm').style.display = 'block'; $('#confirm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      });
+    shell(`
+      <h1>${esc(t('when_come'))}</h1>
+      <p class="sub">${esc(service.name)} · ${service.duration} ${esc(t('min'))} · ${esc(salon.name)}</p>
+      ${salon.accepting === false ? `<div class="notice warn">${esc(t('not_accepting'))}</div>` : ''}
+      ${staff.length > 1 ? `<div class="chips" id="staffc">
+        ${staff.map((p, i) => `<button class="person" data-staff="${p.id}"><span class="ini" style="${tone(i)}">${esc(initials(p.name))}</span>${esc(p.name)}</button>`).join('')}
+        <button class="person any" data-staff="">${esc(t('anyone'))}</button></div>` : ''}
+      <div class="daystrip" id="days" style="margin-top:8px"></div>
+      <div class="legend"><span><i style="background:#22C55E"></i>${esc(t('avail_many'))}</span><span><i style="background:#F59E0B"></i>${esc(t('avail_few'))}</span><span><i style="background:#EF4444"></i>${esc(t('avail_full'))}</span></div>
+      <div id="slots"></div>
+      <div style="margin-top:16px" id="notewrap"><button class="linkbtn" id="addnote">${esc(t('add_note'))}</button></div>`,
+      { back: true, center: stepsBar(2), cta: `<button id="go" disabled>${esc(t('pick_time'))}</button>` });
+
+    const markStaff = () => $$('[data-staff]').forEach(x => x.classList.toggle('on', x.dataset.staff === st.staffId));
+    const drawDays = () => {
+      $('#days').innerHTML = days.map(d => {
+        const n = count(d), cls = n > 6 ? 'g' : n > 2 ? 'y' : n > 0 ? 'r' : '';
+        return `<button class="dday ${ymd(d) === st.date ? 'on' : ''}" data-day="${ymd(d)}" ${n ? '' : 'disabled'}><span>${esc(ymd(d) === ymd(new Date()) ? t('today') : t('days_short')[d.getDay()])}</span><b>${d.getDate()}</b><i class="${cls}"></i></button>`;
+      }).join('');
+      $$('[data-day]').forEach(b => b.onclick = () => { st.date = b.dataset.day; st.preKey = 0; drawDays(); drawSlots(); });
+      const on = $('.dday.on'); on && on.scrollIntoView({ inline: 'center', block: 'nearest' });
     };
-    $$('[data-staff]').forEach(b => b.onclick = () => { st.staffId = b.dataset.staff; $$('[data-staff]').forEach(x => x.classList.toggle('on', x === b)); guard(drawSlots); });
-    $$('[data-day]').forEach(b => b.onclick = () => { st.date = b.dataset.day; $$('[data-day]').forEach(x => x.classList.toggle('on', x === b)); guard(drawSlots); });
+    const setCta = () => {
+      const g = $('#go');
+      if (!st.slot) { g.disabled = true; g.textContent = t('pick_time'); return; }
+      const who = staff.find(p => p.id === st.slot.staff_id);
+      g.disabled = false;
+      g.innerHTML = `<span class="ellipsis">${esc(t('book_cta'))} ${esc(dayName(st.slot.start))} · ${hm(st.slot.start)}${who && staff.length > 1 ? ' · ' + esc(who.name) : ''}</span><span class="tag">${esc(money(service.price))}</span>`;
+    };
+    const drawSlots = () => {
+      st.slot = null;
+      const slots = genSlots(st.date, salon, service, staff, busy, st.staffId);
+      const groups = [['morning', I.sun, s => s.start.getHours() < 12], ['afternoon', I.sunset, s => s.start.getHours() >= 12 && s.start.getHours() < 17], ['evening', I.moon, s => s.start.getHours() >= 17]];
+      $('#slots').innerHTML = slots.length ? groups.map(([k, ic, fn]) => {
+        const g = slots.map((s, i) => [s, i]).filter(([s]) => fn(s)); if (!g.length) return '';
+        return `<div class="tgroup">${ic}${esc(t(k))}</div><div class="slots">${g.map(([s, i]) => `<button class="slot" data-i="${i}">${hm(s.start)}</button>`).join('')}</div>`;
+      }).join('') : `<div class="empty">${esc(t('no_slots'))}</div>`;
+      const pick = b => { $$('.slot').forEach(x => x.classList.remove('on')); b.classList.add('on'); st.slot = slots[+b.dataset.i]; setCta(); };
+      $$('.slot').forEach(b => b.onclick = () => pick(b));
+      if (st.preKey) { const i = slots.findIndex(s => s.start.getTime() === st.preKey); if (i >= 0) pick($(`.slot[data-i="${i}"]`)); }
+      setCta();
+    };
+    $$('[data-staff]').forEach(b => b.onclick = () => { st.staffId = b.dataset.staff; markStaff(); drawDays(); drawSlots(); });
+    $('#addnote').onclick = () => { $('#notewrap').innerHTML = `<label class="f"><span>${esc(t('note'))}</span><textarea id="note" maxlength="300"></textarea></label>`; $('#note').focus(); };
     $('#go').onclick = () => guard(async () => {
-      if (!st.slot) return; $('#go').disabled = true;
+      if (!st.slot) return; const g = $('#go'); g.disabled = true;
       try {
-        await DB().createBooking({ salon_id: salon.id, service_id: service.id, staff_id: st.slot.staff_id, start_at: st.slot.start.toISOString(), note: $('#note').value.trim() });
-        toast(t('booked_ok')); go('my-bookings', {}, true);
-      } catch (e) { $('#go').disabled = false; if (e.message === 'SLOT_TAKEN') { toast(t('slot_taken')); return drawSlots(); } throw e; }
+        const nt = $('#note');
+        const b = await DB().createBooking({ salon_id: salon.id, service_id: service.id, staff_id: st.slot.staff_id, start_at: st.slot.start.toISOString(), note: nt ? nt.value.trim() : '' });
+        const full = { salon_name: salon.name, salon_address: salon.address, salon_city: salon.city, service_name: service.name, ...b };
+        sheet(`<div class="success">
+            <div class="big">${I.check.replace('<svg', '<svg width="30" height="30"')}</div>
+            <h2 style="margin:0 0 4px">${esc(t('booked_title'))}</h2>
+            <div class="title">${esc(dayName(full.start_at))} · ${hm(full.start_at)}</div>
+            <div class="muted small" style="margin-bottom:16px">${esc(full.service_name)}${full.staff_name ? ' · ' + esc(t('with')) + ' ' + esc(full.staff_name) : ''} · ${esc(full.salon_name)}</div>
+            <a class="btn accent block" href="${icsHref(full)}" download="termini.ics">${I.calplus.replace('<svg', '<svg width="18" height="18"')}${esc(t('add_calendar'))}</a>
+            <div class="muted small" style="margin:8px 0 12px">${esc(t('calendar_hint'))}</div>
+            <button class="btn ghost block" data-close>${esc(t('see_bookings'))}</button></div>`,
+          (el, close) => { const obs = new MutationObserver(() => { if (!document.body.contains(el)) { obs.disconnect(); go('my-bookings', {}, true); } }); obs.observe(document.body, { childList: true }); });
+      } catch (e) {
+        g.disabled = false;
+        if (e.message === 'SLOT_TAKEN') { toast(t('slot_taken')); busy = await DB().busy(salon.id, days[0].toISOString(), addDays(days[days.length - 1], 1).toISOString()); drawDays(); drawSlots(); return; }
+        throw e;
+      }
     });
-    await guard(drawSlots);
+    markStaff(); drawDays(); drawSlots();
   }
 
   let bookTab = 'upcoming';
@@ -321,16 +420,23 @@
     const list = bookTab === 'upcoming' ? up : past;
     shell(`
       <h1>${esc(t('my_bookings'))}</h1>
-      <div class="seg" style="margin-top:10px"><button class="${bookTab === 'upcoming' ? 'on' : ''}" data-tab="upcoming">${esc(t('upcoming'))} (${up.length})</button><button class="${bookTab === 'past' ? 'on' : ''}" data-tab="past">${esc(t('past'))}</button></div>
-      <div class="list">${list.length ? list.map(b => `
+      <div class="seg" style="margin-top:12px"><button class="${bookTab === 'upcoming' ? 'on' : ''}" data-tab="upcoming">${esc(t('upcoming'))} (${up.length})</button><button class="${bookTab === 'past' ? 'on' : ''}" data-tab="past">${esc(t('past'))}</button></div>
+      <div class="list">${list.length ? list.map(b => { const d = new Date(b.start_at); return `
         <div class="card ${b.status === 'cancelled' ? 'b-cancelled' : ''}">
-          <div class="row between"><div class="title">${esc(when(b.start_at))}</div>${statusPill(b.status)}</div>
-          <div style="margin-top:4px">${esc(b.service_name)} · <b>${esc(money(b.price))}</b></div>
-          <div class="muted small">${esc(b.salon_name)}${b.staff_name ? ` · ${esc(t('with'))} ${esc(b.staff_name)}` : ''} · ${esc(b.salon_address || '')}</div>
+          <div class="row" style="align-items:flex-start">
+            <div style="width:52px;flex:none;border-radius:16px;background:var(--accent-softer);color:var(--accent);text-align:center;padding:7px 0;line-height:1.1">
+              <div style="font-size:11px;font-weight:800">${esc(t('days_short')[d.getDay()]).toUpperCase()}</div><div style="font-size:20px;font-weight:800">${d.getDate()}</div><div style="font-size:11px;font-weight:700">${pad(d.getMonth() + 1)}</div></div>
+            <div class="grow">
+              <div class="row between" style="gap:6px"><span class="title">${hm(b.start_at)} · ${esc(b.service_name)}</span>${statusPill(b.status)}</div>
+              <div class="muted small">${esc(b.salon_name)}${b.staff_name ? ` · ${esc(t('with'))} ${esc(b.staff_name)}` : ''} · <b style="color:var(--ink)">${esc(money(b.price))}</b></div>
+              <div class="muted small ellipsis">${esc(b.salon_address || '')}</div>
+            </div>
+          </div>
           ${bookTab === 'upcoming' ? `<div class="actions">
+            <a class="btn soft sm" href="${icsHref(b)}" download="termini.ics">${I.calplus.replace('<svg', '<svg width="16" height="16"')}${esc(t('add_calendar'))}</a>
             ${b.salon_phone ? `<a class="btn ghost sm" href="${esc(telHref(b.salon_phone))}">${esc(t('call'))}</a>` : ''}
             <button class="btn danger sm" data-cancel="${b.id}">${esc(t('cancel'))}</button></div>` : ''}
-        </div>`).join('') : `<div class="empty">${esc(t('no_bookings'))}<div style="margin-top:12px"><button class="btn gold" data-nav2="explore">${esc(t('explore'))}</button></div></div>`}</div>`);
+        </div>`; }).join('') : `<div class="empty">${esc(t('no_bookings'))}<div style="margin-top:12px"><button class="btn accent" data-nav2="explore">${esc(t('explore'))}</button></div></div>`}</div>`);
     $$('[data-tab]').forEach(b => b.onclick = () => { bookTab = b.dataset.tab; viewMyBookings(); });
     $$('[data-nav2]').forEach(b => b.onclick = () => go(b.dataset.nav2));
     $$('[data-cancel]').forEach(b => b.onclick = () => { if (confirm(t('cancel_confirm'))) guard(async () => { await DB().setBookingStatus(b.dataset.cancel, 'cancelled'); viewMyBookings(); }); });
@@ -411,54 +517,171 @@
     bindSalonForm(null, () => go('biz-services', {}, true));
   }
 
-  let agendaDate = ymd(new Date());
+  let agendaDate = ymd(new Date()), agendaStaff = '';
+  const longDate = d => `${t('days')[d.getDay()]}, ${d.getDate()} ${t('months')[d.getMonth()]}`;
+  const appUrl = () => location.origin + location.pathname;
+
+  // Free gaps (>= 30 min) per staff member on a day, from now on if today
+  function freeGaps(salon, dateStr, staff, bookings) {
+    const day = fromYmd(dateStr), h = (salon.hours || [])[day.getDay()]; if (!h) return [];
+    const at = m => { const d = new Date(day); d.setHours(0, m, 0, 0); return d; };
+    let from = at(toMin(h.open)); const to = at(toMin(h.close));
+    if (dateStr === ymd(new Date())) { const n = new Date(); n.setSeconds(0, 0); n.setMinutes(Math.ceil(n.getMinutes() / 15) * 15); if (n > from) from = n; }
+    const out = [];
+    staff.forEach(p => {
+      const bs = bookings.filter(b => b.staff_id === p.id && (b.status === 'confirmed' || b.status === 'completed'))
+        .map(b => [new Date(b.start_at), new Date(b.end_at)]).sort((a, b) => a[0] - b[0]);
+      let cur = from;
+      for (const [s, e] of [...bs, [to, to]]) {
+        if (s > cur && (Math.min(s, to) - cur) >= 30 * 60000) out.push({ gap: true, start: new Date(cur), end: new Date(Math.min(s, to)), staff: p });
+        if (e > cur) cur = e;
+        if (cur >= to) break;
+      }
+    });
+    return out;
+  }
+
   async function viewBizAgenda() {
     loading();
     const s = await bizSalon(); if (!s) return viewBizSetup();
-    const d0 = fromYmd(agendaDate), d1 = addDays(d0, 1), wk = addDays(fromYmd(ymd(new Date())), -6);
-    const [list, week, services, staff] = await Promise.all([
-      DB().salonBookings(s.id, d0.toISOString(), d1.toISOString()),
-      DB().salonBookings(s.id, wk.toISOString(), addDays(fromYmd(ymd(new Date())), 1).toISOString()),
-      DB().listServices(s.id), DB().listStaff(s.id)]);
-    list.sort((a, b) => new Date(a.start_at) - new Date(b.start_at));
-    const active = list.filter(b => b.status !== 'cancelled');
-    const rev = arr => arr.filter(b => b.status === 'completed').reduce((n, b) => n + Number(b.price || 0), 0);
-    const days = Array.from({ length: 17 }, (_, i) => addDays(new Date(), i - 2));
+    const d0 = fromYmd(agendaDate), d1 = addDays(d0, 1);
+    const [list, services, staffAll] = await Promise.all([DB().salonBookings(s.id, d0.toISOString(), d1.toISOString()), DB().listServices(s.id), DB().listStaff(s.id)]);
+    const staff = staffAll.filter(p => p.active !== false), svcs = services.filter(x => x.active !== false);
+    if (agendaStaff && !staff.some(p => p.id === agendaStaff)) agendaStaff = '';
+    const isToday = agendaDate === ymd(new Date()), isPast = d1 <= fromYmd(ymd(new Date())), now = Date.now();
+    const live = list.filter(b => b.status === 'confirmed' || b.status === 'completed');
+    const revenue = live.reduce((n, b) => n + Number(b.price || 0), 0);
+    const h = (s.hours || [])[d0.getDay()];
+    const openMin = h ? (toMin(h.close) - toMin(h.open)) * Math.max(staff.length, 1) : 0;
+    const bookedMin = live.reduce((n, b) => n + (new Date(b.end_at) - new Date(b.start_at)) / 60000, 0);
+    const pct = openMin ? Math.min(100, Math.round(bookedMin / openMin * 100)) : 0;
+    const shownStaff = agendaStaff ? staff.filter(p => p.id === agendaStaff) : staff;
+    const vis = list.filter(b => !agendaStaff || b.staff_id === agendaStaff);
+    const gaps = isPast ? [] : freeGaps(s, agendaDate, shownStaff, list).slice(0, 4);
+    const items = [...vis, ...gaps].sort((a, b) => new Date(a.start_at || a.start) - new Date(b.start_at || b.start));
+    const sec = it => { if (!isToday) return 'day'; const st = new Date(it.start_at || it.start).getTime(), en = new Date(it.end_at || it.end).getTime();
+      if (!it.gap && it.status === 'confirmed' && st <= now && en > now) return 'now'; return st > now || it.gap ? 'later' : 'earlier'; };
+    const sections = isToday ? [['now', t('now_label')], ['later', t('later_label')], ['earlier', t('earlier_label')]] : [['day', dayName(d0)]];
+    const card = b => {
+      if (b.gap) {
+        const msg = t('free_share_msg').replace('{salon}', s.name).replace('{times}', `${hm(b.start)}–${hm(b.end)} (${b.staff.name})`).replace('{url}', appUrl());
+        return `<div class="card row"><span class="timepill coral">${hm(b.start)}</span>
+          <div class="grow"><div class="title">${esc(t('free_slot'))}</div><div class="muted small">${esc(b.staff.name)} · ${hm(b.start)}–${hm(b.end)}</div></div>
+          <a class="btn primary sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(msg)}">${esc(t('share_free'))}</a></div>`;
+      }
+      const conf = b.status === 'confirmed';
+      const msg = t('wa_msg').replace('{name}', (b.client_name || '').split(' ')[0]).replace('{salon}', s.name).replace('{when}', when(b.start_at));
+      return `<div class="card row tap ${sec(b) === 'now' ? 'now' : ''} ${b.status === 'cancelled' ? 'b-cancelled' : ''} ${b.status === 'completed' || b.status === 'no_show' ? 'b-done' : ''}" data-b="${b.id}">
+        <span class="timepill ${conf ? '' : 'mute'}">${hm(b.start_at)}</span>
+        <div class="grow">
+          <div class="row" style="gap:6px"><span class="title ellipsis grow">${esc(b.client_name || '—')}</span>${!conf ? statusPill(b.status) : b.walk_in ? `<span class="pill coral">${esc(t('walk_in_label'))}</span>` : ''}</div>
+          <div class="muted small ellipsis">${esc(b.service_name)} · ${esc(b.staff_name || '—')} · ${esc(money(b.price))}</div>
+        </div>
+        ${conf ? `<button class="iconbtn ok" data-done="${b.id}" aria-label="${esc(t('done'))}">${I.check}</button>` : ''}
+        ${conf && b.client_phone ? `<a class="iconbtn wa" data-stop target="_blank" rel="noopener" aria-label="${esc(t('whatsapp'))}" href="https://wa.me/${waNumber(b.client_phone)}?text=${encodeURIComponent(msg)}">${I.wa}</a>` : ''}
+      </div>`;
+    };
+    const days = Array.from({ length: 17 }, (_, i) => addDays(fromYmd(ymd(new Date())), i - 2));
+    const counts = Object.fromEntries(staff.map(p => [p.id, live.filter(b => b.staff_id === p.id).length]));
+    const accepting = s.accepting !== false;
     shell(`
       ${salonBanner(s)}
-      ${!staff.length ? `<div class="notice info">${esc(t('min_staff'))}</div>` : ''}
-      ${!services.length ? `<div class="notice info">${esc(t('min_services'))}</div>` : ''}
-      <div class="row between"><h1>${esc(s.name)}</h1></div>
-      <div class="chips" style="margin:8px -16px 12px">${days.map(d => `<button class="chip day ${ymd(d) === agendaDate ? 'on' : ''}" data-day="${ymd(d)}"><span>${esc(ymd(d) === ymd(new Date()) ? t('today') : t('days_short')[d.getDay()])}</span><b>${d.getDate()}</b><span>${pad(d.getMonth() + 1)}</span></button>`).join('')}</div>
-      <div class="stats">
-        <div class="stat"><div class="v">${active.length}</div><div class="l">${esc(t('total_bookings'))}</div></div>
-        <div class="stat"><div class="v">${esc(money(rev(list)))}</div><div class="l">${esc(t('revenue_day'))}</div></div>
-        <div class="stat"><div class="v">${esc(money(rev(week)))}</div><div class="l">${esc(t('revenue_week'))}</div></div>
+      <div class="row between" style="margin-top:4px;align-items:flex-start">
+        <div class="grow"><div class="muted small" style="font-weight:700">${esc(s.name)}</div><h1 style="margin:0">${esc(longDate(d0))}</h1></div>
+        <button class="online ${accepting ? 'on' : 'off'}" id="onl" aria-pressed="${accepting}" title="${esc(t(accepting ? 'accepting_on' : 'accepting_off'))}"><span class="dot"></span>${esc(t(accepting ? 'online' : 'offline'))}</button>
       </div>
-      <h2>${esc(dayName(d0))}</h2>
-      <div class="list">${list.length ? list.map(b => {
-        const msg = t('wa_msg').replace('{name}', (b.client_name || '').split(' ')[0]).replace('{salon}', s.name).replace('{when}', when(b.start_at));
-        return `<div class="card ${b.status === 'cancelled' ? 'b-cancelled' : ''}">
-          <div class="row" style="align-items:flex-start">
-            <div class="timecol"><b>${hm(b.start_at)}</b><span>${hm(b.end_at)}</span></div>
-            <div class="grow">
-              <div class="row between"><span class="title ellipsis">${esc(b.client_name || '—')}</span>${statusPill(b.status)}</div>
-              <div class="small">${esc(b.service_name)} · <b>${esc(money(b.price))}</b></div>
-              <div class="muted small">${esc(t('with'))} ${esc(b.staff_name || '—')}${b.client_phone ? ' · ' + esc(b.client_phone) : ''}</div>
-              ${b.note ? `<div class="small" style="margin-top:4px">“${esc(b.note)}”</div>` : ''}
-              ${b.status === 'confirmed' ? `<div class="actions">
-                <button class="btn primary sm" data-st="completed" data-id="${b.id}">${esc(t('done'))}</button>
-                <button class="btn ghost sm" data-st="no_show" data-id="${b.id}">${esc(t('no_show'))}</button>
-                ${b.client_phone ? `<a class="btn ghost sm" target="_blank" rel="noopener" href="https://wa.me/${waNumber(b.client_phone)}?text=${encodeURIComponent(msg)}">${esc(t('whatsapp'))}</a>
-                <a class="btn ghost sm" href="${esc(telHref(b.client_phone))}">${esc(t('call'))}</a>` : ''}
-                <button class="btn danger sm" data-st="cancelled" data-id="${b.id}">${esc(t('cancel'))}</button></div>` : ''}
-            </div>
-          </div></div>`; }).join('') : `<div class="empty">${esc(t('empty_day'))}</div>`}</div>`);
+      ${!staff.length ? `<div class="notice info" style="margin-top:12px">${esc(t('min_staff'))}</div>` : ''}
+      ${!svcs.length ? `<div class="notice info" style="margin-top:12px">${esc(t('min_services'))}</div>` : ''}
+      <div class="chips" style="margin-top:12px">${days.map(d => `<button class="chip" style="padding:7px 0;width:54px;display:flex;flex-direction:column;align-items:center;line-height:1.15;${ymd(d) === agendaDate ? 'background:var(--accent);color:#fff' : ''}" data-day="${ymd(d)}"><span style="font-size:11px;opacity:.8">${esc(ymd(d) === ymd(new Date()) ? t('today') : t('days_short')[d.getDay()])}</span><b style="font-size:17px">${d.getDate()}</b></button>`).join('')}</div>
+      <div class="stats">
+        <div class="stat accent"><div class="v">${live.length}</div><div class="l">${esc(t('total_bookings')).toLowerCase()}</div></div>
+        <div class="stat"><div class="v" style="font-size:19px">${esc(money(revenue).replace(' ' + (C.CURRENCY || 'ALL'), ''))}</div><div class="l">${esc(C.CURRENCY || 'ALL')} · ${esc(dayName(d0)).toLowerCase()}</div></div>
+        <div class="stat ring">
+          <svg width="40" height="40" viewBox="0 0 40 40" role="img" aria-label="${pct}%" style="flex:none"><circle cx="20" cy="20" r="16" fill="none" stroke="#E3E7FF" stroke-width="6"/><circle cx="20" cy="20" r="16" fill="none" stroke="#FF6A3D" stroke-width="6" pathLength="100" stroke-dasharray="${pct} 100" transform="rotate(-90 20 20)" stroke-linecap="round"/></svg>
+          <div style="min-width:0"><div class="v" style="font-size:16px">${pct}%</div><div class="l">${esc(t('occupied'))}</div></div>
+        </div>
+      </div>
+      ${staff.length > 1 ? `<div class="chips" style="margin-top:10px"><button class="chip ${!agendaStaff ? 'on' : ''}" data-fs="">${esc(t('all_staff'))}</button>${staff.map(p => `<button class="chip ${agendaStaff === p.id ? 'on' : ''}" data-fs="${p.id}">${esc(p.name)} · ${counts[p.id] || 0}</button>`).join('')}</div>` : ''}
+      ${items.length ? sections.map(([k, label]) => { const its = items.filter(it => sec(it) === k); return its.length ? `<div class="kicker">${esc(label)}</div><div class="list">${its.map(card).join('')}</div>` : ''; }).join('')
+        : `<div class="empty">${esc(t('empty_day'))}</div>`}`,
+      { fab: staff.length && svcs.length && !isPast ? `<button class="fab" id="walk">${I.plus}${esc(t('walk_in'))}</button>` : '' });
+
     $$('[data-day]').forEach(b => b.onclick = () => { agendaDate = b.dataset.day; viewBizAgenda(); });
-    const cur = $('[data-day].on'); cur && cur.scrollIntoView({ inline: 'center', block: 'nearest' });
-    $$('[data-st]').forEach(b => b.onclick = () => {
-      if (b.dataset.st === 'cancelled' && !confirm(t('cancel_confirm'))) return;
-      guard(async () => { await DB().setBookingStatus(b.dataset.id, b.dataset.st); viewBizAgenda(); });
+    const cur = $(`[data-day="${agendaDate}"]`); cur && cur.scrollIntoView({ inline: 'center', block: 'nearest' });
+    $$('[data-fs]').forEach(b => b.onclick = () => { agendaStaff = b.dataset.fs; viewBizAgenda(); });
+    $('#onl').onclick = () => guard(async () => { S.salon = await DB().saveSalon({ id: s.id, accepting: !accepting }); toast(t(!accepting ? 'accepting_on' : 'accepting_off')); viewBizAgenda(); });
+    $$('[data-done]').forEach(b => b.onclick = e => { e.stopPropagation(); guard(async () => { await DB().setBookingStatus(b.dataset.done, 'completed'); viewBizAgenda(); }); });
+    $$('[data-stop]').forEach(a => a.onclick = e => e.stopPropagation());
+    $$('[data-b]').forEach(c => c.onclick = () => {
+      const b = list.find(x => x.id === c.dataset.b); if (!b) return;
+      const conf = b.status === 'confirmed';
+      sheet(`<h2>${esc(b.client_name || '—')}</h2>
+        <div class="card" style="margin-bottom:12px"><dl class="kv">
+          <dt>${esc(t('time_label'))}</dt><dd>${esc(when(b.start_at))} – ${hm(b.end_at)}</dd>
+          <dt>${esc(t('services'))}</dt><dd>${esc(b.service_name)} · ${esc(money(b.price))}</dd>
+          <dt>${esc(t('staff'))}</dt><dd>${esc(b.staff_name || '—')}</dd>
+          ${b.client_phone ? `<dt>${esc(t('phone'))}</dt><dd>${esc(b.client_phone)}</dd>` : ''}
+          ${b.note ? `<dt>${esc(t('note_label'))}</dt><dd>${esc(b.note)}</dd>` : ''}
+          <dt>${esc(t('status_label'))}</dt><dd>${statusPill(b.status)}</dd></dl></div>
+        <div class="list">
+          ${conf ? `<button class="btn primary block" data-set="completed">${esc(t('done'))}</button>
+          <button class="btn ghost block" data-set="no_show">${esc(t('no_show'))}</button>` : ''}
+          ${b.client_phone ? `<div class="grid2"><a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/${waNumber(b.client_phone)}?text=${encodeURIComponent(t('wa_msg').replace('{name}', (b.client_name || '').split(' ')[0]).replace('{salon}', s.name).replace('{when}', when(b.start_at)))}">${esc(t('whatsapp'))}</a>
+            <a class="btn ghost" href="${esc(telHref(b.client_phone))}">${esc(t('call'))}</a></div>` : ''}
+          ${conf ? `<button class="btn danger block" data-set="cancelled">${esc(t('cancel'))}</button>` : ''}
+        </div>`, (el, close) => {
+        $$('[data-set]', el).forEach(x => x.onclick = () => {
+          if (x.dataset.set === 'cancelled' && !confirm(t('cancel_confirm'))) return;
+          guard(async () => { await DB().setBookingStatus(b.id, x.dataset.set); close(); viewBizAgenda(); });
+        });
+      });
+    });
+    const wk = $('#walk'); if (wk) wk.onclick = () => walkInSheet(s, svcs, staff);
+  }
+
+  async function walkInSheet(s, svcs, staff) {
+    const dateStr = agendaDate, d0 = fromYmd(dateStr);
+    const busy = await DB().busy(s.id, d0.toISOString(), addDays(d0, 1).toISOString());
+    sheet(`<h2>${esc(t('walk_in_title'))}</h2>
+      <form id="wf">
+        <label class="f"><span>${esc(t('client_name'))} *</span><input type="text" name="name" required autocomplete="off"></label>
+        <label class="f"><span>${esc(t('phone'))} (${esc(t('optional'))})</span><input type="tel" name="phone" placeholder="069 123 4567"></label>
+        <div class="grid2">
+          <label class="f"><span>${esc(t('services'))}</span><select name="service">${svcs.map(x => `<option value="${x.id}">${esc(x.name)} · ${x.duration}′</option>`).join('')}</select></label>
+          <label class="f"><span>${esc(t('staff'))}</span><select name="staff"><option value="">${esc(t('anyone'))}</option>${staff.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></label>
+        </div>
+        <label class="f"><span>${esc(t('start_time'))}</span><select name="start" id="wstart"></select></label>
+        <button class="btn accent block" type="submit">${esc(t('save'))}</button>
+      </form>`, (el, close) => {
+      const f = $('#wf', el);
+      const fill = () => {
+        const svc = svcs.find(x => x.id === f.service.value);
+        const slots = genSlots(dateStr, s, svc, staff, busy, f.staff.value);
+        const hh = (s.hours || [])[d0.getDay()], nw = new Date(), nm = nw.getHours() * 60 + nw.getMinutes();
+        const isToday = dateStr === ymd(nw) && hh && nm >= toMin(hh.open) && nm + Number(svc.duration) <= toMin(hh.close);
+        $('#wstart', el).innerHTML = (isToday ? `<option value="now">${esc(t('start_now'))}</option>` : '') +
+          slots.map(x => `<option value="${x.start.toISOString()}|${x.staff_id}">${hm(x.start)}${staff.length > 1 ? ' · ' + esc((staff.find(p => p.id === x.staff_id) || {}).name || '') : ''}</option>`).join('');
+        if (!$('#wstart', el).options.length) $('#wstart', el).innerHTML = `<option value="">${esc(t('no_slots'))}</option>`;
+      };
+      f.service.onchange = fill; f.staff.onchange = fill; fill();
+      f.onsubmit = e => {
+        e.preventDefault();
+        const name = f.name.value.trim(); if (!name) return toast(t('fill_required'));
+        const svc = svcs.find(x => x.id === f.service.value);
+        let start, staffId;
+        if (f.start.value === 'now') {
+          const n = new Date(); n.setSeconds(0, 0); start = n;
+          const end = new Date(n.getTime() + svc.duration * 60000);
+          const pool = staff.filter(p => !f.staff.value || p.id === f.staff.value);
+          const free = pool.find(p => !busy.some(b => b.staff_id === p.id && new Date(b.start_at) < end && n < new Date(b.end_at)));
+          if (!free) return toast(t('slot_taken')); staffId = free.id;
+        } else if (f.start.value) { const [iso, sid] = f.start.value.split('|'); start = new Date(iso); staffId = sid; }
+        else return toast(t('no_slots'));
+        guard(async () => {
+          await DB().createBooking({ salon_id: s.id, service_id: svc.id, staff_id: staffId, start_at: start.toISOString(), walk_in: true, client_name: name, client_phone: f.phone.value.trim() });
+          close(); toast(t('saved')); viewBizAgenda();
+        });
+      };
     });
   }
 

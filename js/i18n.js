@@ -37,7 +37,18 @@ window.I18N = {
     min_staff: 'Shto të paktën një punonjës që klientët të rezervojnë.', min_services: 'Shto shërbimet që ofron.',
     with: 'me', at: 'në', client_label: 'Klienti', install_app: 'Instalo aplikacionin', error: 'Diçka shkoi keq',
     password_short: 'Fjalëkalimi duhet të ketë të paktën 6 karaktere.', open_now: 'Hapur tani', closed_now: 'Mbyllur tani',
-    wa_msg: 'Përshëndetje {name}, ju kujtojmë rezervimin tuaj në {salon} më {when}. Faleminderit!'
+    wa_msg: 'Përshëndetje {name}, ju kujtojmë rezervimin tuaj në {salon} më {when}. Faleminderit!',
+    hello: 'Përshëndetje', what_today: 'Çfarë do sot?', search_home: 'Sallon, shërbim ose lagje', free_now: 'Lirë tani pranë teje',
+    free_soon: 'Orët e para të lira', more: 'Më shumë', from_price: 'nga', when_come: 'Kur të vish?', step_of: '{a}/{b}',
+    morning: 'Mëngjes', afternoon: 'Pasdite', evening: 'Mbrëmje', avail_many: 'shumë orë', avail_few: 'pak orë', avail_full: 'pothuajse plot',
+    pick_time: 'Zgjidh një orë', book_cta: 'Rezervo', add_note: '+ Shto shënim', booked_title: 'U rezervua!', add_calendar: 'Shto në kalendar',
+    calendar_hint: 'Kalendari i telefonit të kujton 2 orë para.', see_bookings: 'Shiko rezervimet', done_btn: 'Në rregull',
+    now_label: 'Tani', later_label: 'Më vonë', earlier_label: 'Më herët', free_slot: 'Ora e lirë', share_free: 'Ndaj',
+    walk_in: 'Klient pa termin', walk_in_title: 'Klient pa termin', start_time: 'Ora e fillimit', start_now: 'Tani',
+    occupied: 'e zënë', online: 'Online', offline: 'Offline', all_staff: 'Të gjithë', not_accepting: 'Ky sallon nuk po pranon rezervime online tani.',
+    accepting_on: 'Rezervimet online janë hapur', accepting_off: 'Rezervimet online janë mbyllur', client_name: 'Emri i klientit', optional: 'opsionale',
+    free_share_msg: 'Kemi orë të lira sot te {salon}: {times}. Rezervo këtu: {url}', more_actions: 'Veprime', next_day: 'Nesër',
+    no_free_today: 'Asnjë orë e lirë sot', categories: 'Kategoritë', all_results: 'Rezultatet', walk_in_label: 'pa termin', time_label: 'Ora', months: ['jan', 'shk', 'mar', 'pri', 'maj', 'qer', 'korr', 'gush', 'sht', 'tet', 'nën', 'dhj'], note_label: 'Shënim', status_label: 'Statusi'
   },
   en: {
     tagline: 'Book your barber or salon in seconds',
@@ -76,6 +87,17 @@ window.I18N = {
     min_staff: 'Add at least one staff member so clients can book.', min_services: 'Add the services you offer.',
     with: 'with', at: 'at', client_label: 'Client', install_app: 'Install app', error: 'Something went wrong',
     password_short: 'Password must be at least 6 characters.', open_now: 'Open now', closed_now: 'Closed now',
-    wa_msg: 'Hello {name}, a reminder of your booking at {salon} on {when}. Thank you!'
+    wa_msg: 'Hello {name}, a reminder of your booking at {salon} on {when}. Thank you!',
+    hello: 'Hello', what_today: 'What do you need today?', search_home: 'Salon, service or area', free_now: 'Free now near you',
+    free_soon: 'First free times', more: 'More', from_price: 'from', when_come: 'When do you want to come?', step_of: '{a}/{b}',
+    morning: 'Morning', afternoon: 'Afternoon', evening: 'Evening', avail_many: 'many times', avail_few: 'a few', avail_full: 'almost full',
+    pick_time: 'Pick a time', book_cta: 'Book', add_note: '+ Add a note', booked_title: 'Booked!', add_calendar: 'Add to calendar',
+    calendar_hint: 'Your phone calendar will remind you 2 hours before.', see_bookings: 'See bookings', done_btn: 'OK',
+    now_label: 'Now', later_label: 'Later', earlier_label: 'Earlier', free_slot: 'Free time', share_free: 'Share',
+    walk_in: 'Walk-in client', walk_in_title: 'Walk-in client', start_time: 'Start time', start_now: 'Now',
+    occupied: 'booked', online: 'Online', offline: 'Offline', all_staff: 'Everyone', not_accepting: 'This salon is not taking online bookings right now.',
+    accepting_on: 'Online booking is on', accepting_off: 'Online booking is off', client_name: 'Client name', optional: 'optional',
+    free_share_msg: 'We have free times today at {salon}: {times}. Book here: {url}', more_actions: 'Actions', next_day: 'Tomorrow',
+    no_free_today: 'No free times today', categories: 'Categories', all_results: 'Results', walk_in_label: 'walk-in', time_label: 'Time', months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], note_label: 'Note', status_label: 'Status'
   }
 };
