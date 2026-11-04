@@ -37,6 +37,9 @@ create table if not exists public.salons (
 );
 alter table public.salons add column if not exists accepting boolean not null default true;
 alter table public.salons add column if not exists approved_at timestamptz;
+alter table public.salons add column if not exists photos jsonb not null default '[]';      -- [{url, path}] in Storage bucket salon-photos
+alter table public.salons add column if not exists rating_avg numeric(3,2);                 -- kept up to date by the reviews trigger
+alter table public.salons add column if not exists rating_count int not null default 0;
 create unique index if not exists salons_one_per_owner on public.salons(owner_id);  -- one salon per business account
 create index if not exists salons_status_city on public.salons(status, city);
 
@@ -132,12 +135,16 @@ create trigger profiles_protect before update on public.profiles
 create or replace function public.protect_salon() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
+  -- internal updates from the reviews trigger skip the owner checks
+  if coalesce(current_setting('termini.sys', true), '') = '1' then return new; end if;
   if auth.uid() is not null and not public.is_admin() then
     if tg_op = 'INSERT' then
       new.owner_id := auth.uid(); new.status := 'pending'; new.plan := 'trial'; new.plan_until := null; new.approved_at := null;
+      new.rating_avg := null; new.rating_count := 0;
     else
       new.owner_id := old.owner_id; new.status := old.status; new.plan := old.plan;
       new.plan_until := old.plan_until; new.approved_at := old.approved_at;
+      new.rating_avg := old.rating_avg; new.rating_count := old.rating_count;
     end if;
   end if;
   if new.status = 'active' and new.approved_at is null then
@@ -225,12 +232,66 @@ begin
     'bookings30', (select count(*) from public.bookings where created_at >= now() - interval '30 days'));
 end $$;
 
+-- ---------- Reviews (stars after a completed visit) ----------
+create table if not exists public.reviews (
+  id          uuid primary key default gen_random_uuid(),
+  booking_id  uuid not null unique references public.bookings(id) on delete cascade,
+  salon_id    uuid not null references public.salons(id) on delete cascade,
+  client_id   uuid not null references public.profiles(id) on delete cascade,
+  client_name text not null default '',
+  rating      int not null check (rating between 1 and 5),
+  comment     text not null default '' check (length(comment) <= 500),
+  created_at  timestamptz not null default now()
+);
+create index if not exists reviews_salon on public.reviews(salon_id, created_at desc);
+
+-- Only the client of a COMPLETED booking can review it, once.
+create or replace function public.prepare_review() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare b public.bookings; nm text;
+begin
+  if tg_op = 'INSERT' then
+    select * into b from public.bookings where id = new.booking_id;
+    if not found or (auth.uid() is not null and b.client_id <> auth.uid()) or b.status <> 'completed' then
+      raise exception 'FORBIDDEN';
+    end if;
+    new.salon_id := b.salon_id; new.client_id := b.client_id; new.created_at := now();
+    select name into nm from public.profiles where id = b.client_id;
+    nm := trim(coalesce(nm, ''));
+    new.client_name := split_part(nm, ' ', 1) || case when position(' ' in nm) > 0 then ' ' || left(split_part(nm, ' ', 2), 1) || '.' else '' end;
+  else
+    new.id := old.id; new.booking_id := old.booking_id; new.salon_id := old.salon_id; new.client_id := old.client_id;
+    new.client_name := old.client_name; new.created_at := old.created_at;
+  end if;
+  return new;
+end $$;
+drop trigger if exists reviews_prepare on public.reviews;
+create trigger reviews_prepare before insert or update on public.reviews
+  for each row execute function public.prepare_review();
+
+create or replace function public.refresh_rating() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare sid uuid := coalesce(new.salon_id, old.salon_id);
+begin
+  perform set_config('termini.sys', '1', true);
+  update public.salons s set
+    rating_avg = (select round(avg(rating)::numeric, 2) from public.reviews where salon_id = sid),
+    rating_count = (select count(*) from public.reviews where salon_id = sid)
+  where s.id = sid;
+  perform set_config('termini.sys', '', true);
+  return null;
+end $$;
+drop trigger if exists reviews_refresh on public.reviews;
+create trigger reviews_refresh after insert or update or delete on public.reviews
+  for each row execute function public.refresh_rating();
+
 -- ---------- Row Level Security ----------
 alter table public.profiles enable row level security;
 alter table public.salons   enable row level security;
 alter table public.services enable row level security;
 alter table public.staff    enable row level security;
 alter table public.bookings enable row level security;
+alter table public.reviews  enable row level security;
 
 drop policy if exists profiles_select on public.profiles;
 create policy profiles_select on public.profiles for select using (id = auth.uid() or public.is_admin());
@@ -270,13 +331,40 @@ drop policy if exists bookings_update on public.bookings;
 create policy bookings_update on public.bookings for update
   using (client_id = auth.uid() or public.owns_salon(salon_id) or public.is_admin());
 
+drop policy if exists reviews_select on public.reviews;
+create policy reviews_select on public.reviews for select using (true);
+drop policy if exists reviews_insert on public.reviews;
+create policy reviews_insert on public.reviews for insert with check (client_id = auth.uid());
+drop policy if exists reviews_update on public.reviews;
+create policy reviews_update on public.reviews for update using (client_id = auth.uid());
+drop policy if exists reviews_delete on public.reviews;
+create policy reviews_delete on public.reviews for delete using (client_id = auth.uid() or public.is_admin());
+
 -- ---------- Permissions for the API roles ----------
 grant usage on schema public to anon, authenticated;
-grant select on public.salons, public.services, public.staff to anon;
-grant select, insert, update, delete on public.profiles, public.salons, public.services, public.staff, public.bookings to authenticated;
+grant select on public.salons, public.services, public.staff, public.reviews to anon;
+grant select, insert, update, delete on public.profiles, public.salons, public.services, public.staff, public.bookings, public.reviews to authenticated;
 grant execute on function public.busy_slots(uuid, timestamptz, timestamptz) to anon, authenticated;
 grant execute on function public.admin_stats() to authenticated;
 grant execute on function public.is_admin(), public.owns_salon(uuid) to anon, authenticated;
+
+-- ---------- Photo storage (free Supabase Storage, bucket "salon-photos") ----------
+-- Public read; only the salon owner can upload/delete inside the folder named after the salon id.
+-- Skipped automatically where the storage schema does not exist.
+do $$
+begin
+  if exists (select 1 from pg_namespace where nspname = 'storage') then
+    insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+    values ('salon-photos', 'salon-photos', true, 1048576, array['image/jpeg', 'image/webp', 'image/png'])
+    on conflict (id) do update set public = true, file_size_limit = 1048576, allowed_mime_types = array['image/jpeg', 'image/webp', 'image/png'];
+    execute 'drop policy if exists "salon photos read" on storage.objects';
+    execute 'create policy "salon photos read" on storage.objects for select using (bucket_id = ''salon-photos'')';
+    execute 'drop policy if exists "salon photos upload" on storage.objects';
+    execute 'create policy "salon photos upload" on storage.objects for insert to authenticated with check (bucket_id = ''salon-photos'' and public.owns_salon(((storage.foldername(name))[1])::uuid))';
+    execute 'drop policy if exists "salon photos delete" on storage.objects';
+    execute 'create policy "salon photos delete" on storage.objects for delete to authenticated using (bucket_id = ''salon-photos'' and public.owns_salon(((storage.foldername(name))[1])::uuid))';
+  end if;
+end $$;
 
 -- =====================================================================
 -- AFTER you sign up in the app with your own email, make yourself admin:

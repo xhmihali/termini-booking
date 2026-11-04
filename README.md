@@ -17,6 +17,12 @@ A booking app (installable PWA) for barbers, beauty salons, nail studios and spa
 
 **Extra details:** the client home has "Your next appointment", "Book again" and "Invite a friend". The salon page has a map and a Share button. The business agenda has a "Last 7 days" revenue chart. The background is a soft animated violet/blue/coral glow with a fine dot grid, on all screens.
 
+**Photos, reviews, QR, Google (all free):**
+- **Salon photos:** owners add up to 6 photos (Salon → Salon photos). Photos are shrunk on the phone (max 1200 px, JPEG) before upload to the free Supabase Storage bucket `salon-photos` (1 GB free). The first photo is the cover on cards and pages. In demo mode photos are kept in the browser (max 4).
+- **Star reviews:** after a visit is marked *Completed*, the client can rate it 1–5 stars with an optional comment (once per visit). The database checks this and keeps each salon's average up to date; owners cannot change ratings. Ratings show on cards, salon pages, Google pages and the owner's Salon page.
+- **QR poster:** Salon → Your booking link → **QR code** opens a printable A5 poster with the salon's QR code (generated in the browser with the MIT-licensed `qrcode-generator`, no online service). It can also be downloaded as SVG.
+- **City pages for Google:** the GitHub Action `.github/workflows/seo.yml` runs every night (free on public repos), reads the public salon list from Supabase and builds static pages `qytet/<city>/` with titles, descriptions and Google structured data (stars, address, opening hours), plus `sitemap.xml` and `robots.txt`. After you connect Supabase, open the **Actions** tab → *City pages for Google* → **Run workflow** once, then add the site to Google Search Console and submit `sitemap.xml`. The daily run also keeps the free Supabase project from pausing.
+
 ## Cost: €0
 
 | Part | Service | Cost |
@@ -25,6 +31,9 @@ A booking app (installable PWA) for barbers, beauty salons, nail studios and spa
 | Database + logins | Supabase Free plan (500 MB DB, 50,000 monthly users) | Free |
 | Library | supabase-js (MIT license) | Free |
 | Reminders | WhatsApp click-to-chat links (`wa.me`) | Free, no SMS fees |
+| Photos | Supabase Storage (1 GB on the free plan) | Free |
+| Google city pages | GitHub Actions (public repo) | Free |
+| QR code | `qrcode-generator` (MIT), runs in the browser | Free |
 | Fonts / icons | System fonts, own SVG icon | Free |
 
 Note: Supabase pauses a free project after 7 days with **no activity**. A salon app with daily bookings stays active. If it ever pauses, click "Restore" in the Supabase dashboard (free).

@@ -98,6 +98,46 @@
     const m = d.getHours() * 60 + d.getMinutes(); return m >= toMin(h.open) && m < toMin(h.close);
   }
 
+  // Ratings & photos helpers
+  const starRow = (r, px = 16) => `<span class="stars" style="font-size:${px}px" aria-label="${Number(r).toFixed(1)} / 5">${[1, 2, 3, 4, 5].map(i => `<i class="${r >= i - 0.25 ? 'on' : r >= i - 0.75 ? 'half' : ''}">★</i>`).join('')}</span>`;
+  const ratingTag = s => s && s.rating_count ? `<span class="rate">★ ${Number(s.rating_avg).toFixed(1)}<small> (${s.rating_count})</small></span>` : '';
+  const salonThumb = (s, cls = '') => (s.photos && s.photos.length)
+    ? `<img class="thumb ${cls}" src="${esc(s.photos[0].url)}" alt="" loading="lazy">`
+    : `<div class="avatar ${esc(s.category)} ${cls}">${esc(initials(s.name))}</div>`;
+  // Shrink photos on the phone before upload (saves the free storage and data)
+  function resizeImage(file, max = 1200, quality = 0.78) {
+    return new Promise((resolve, reject) => {
+      const img = new Image(), url = URL.createObjectURL(file);
+      img.onload = () => {
+        const k = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+        c.toBlob(b => b ? resolve(b) : reject(new Error('IMAGE')), 'image/jpeg', quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('IMAGE')); };
+      img.src = url;
+    });
+  }
+  function reviewSheet(b, onDone) {
+    let val = 0;
+    sheet(`<h2>${esc(fill('review_title', { salon: b.salon_name || '' }))}</h2>
+      <p class="muted small" style="margin:-4px 0 12px">${esc(b.service_name)} · ${esc(dayName(b.start_at))}${b.staff_name ? ' · ' + esc(t('with')) + ' ' + esc(b.staff_name) : ''}</p>
+      <div class="starpick" role="radiogroup" aria-label="${esc(t('rating'))}">${[1, 2, 3, 4, 5].map(i => `<button type="button" data-star="${i}" aria-label="${i}">★</button>`).join('')}</div>
+      <div class="muted small" id="starlbl" style="text-align:center;min-height:20px;margin:6px 0 10px"></div>
+      <label class="f"><span>${esc(t('review_comment'))} (${esc(t('optional'))})</span><textarea id="rvc" maxlength="500"></textarea></label>
+      <button class="btn accent block" id="rvsend" disabled>${esc(t('review_send'))}</button>`, (el, close) => {
+      const labels = t('star_labels');
+      $$('[data-star]', el).forEach(btn => btn.onclick = () => {
+        val = +btn.dataset.star; $$('[data-star]', el).forEach(x => x.classList.toggle('on', +x.dataset.star <= val));
+        $('#starlbl', el).textContent = labels[val - 1]; $('#rvsend', el).disabled = false;
+      });
+      $('#rvsend', el).onclick = () => guard(async () => {
+        await DB().createReview({ booking_id: b.id, rating: val, comment: $('#rvc', el).value.trim() });
+        close(); toast(t('review_thanks')); onDone && onDone();
+      });
+    });
+  }
+
   // ---------- Router ----------
   function go(route, params = {}, replace = false) {
     S.route = route; S.params = params;
@@ -129,7 +169,7 @@
     business: [['biz-agenda', 'agenda', I.cal], ['biz-services', 'services', I.list], ['biz-staff', 'staff', I.team], ['biz-salon', 'settings', I.store], ['profile', 'profile', I.user]],
     admin: [['adm-dash', 'dashboard', I.chart], ['adm-salons', 'salons', I.store], ['adm-users', 'users', I.team], ['profile', 'profile', I.user]]
   };
-  const NAV_OF = { salon: 'explore', book: 'explore' };
+  const NAV_OF = { salon: 'explore', book: 'explore', 'biz-qr': 'biz-salon' };
 
   function shell(content, opts = {}) {
     const nav = S.user ? NAVS[S.user.role] || [] : [];
@@ -172,7 +212,7 @@
     }
     const views = {
       explore: viewExplore, salon: viewSalon, book: viewBook, 'my-bookings': viewMyBookings, profile: viewProfile,
-      'biz-agenda': viewBizAgenda, 'biz-services': viewBizServices, 'biz-staff': viewBizStaff, 'biz-salon': viewBizSalon,
+      'biz-agenda': viewBizAgenda, 'biz-services': viewBizServices, 'biz-staff': viewBizStaff, 'biz-salon': viewBizSalon, 'biz-qr': viewBizQr,
       'adm-dash': viewAdmDash, 'adm-salons': viewAdmSalons, 'adm-users': viewAdmUsers
     };
     const allowed = { explore: 'client', salon: 'client', book: 'client', 'my-bookings': 'client' };
@@ -316,6 +356,7 @@
         <div class="lp-fbrand"><div class="row" style="gap:10px"><img src="icons/icon.svg" alt="" width="36" height="36" style="border-radius:11px"><b style="font-size:19px">${esc(C.APP_NAME || 'Termini')}</b></div><p class="muted small">${esc(t('tagline'))}</p></div>
         <div><div class="title">${esc(t('for_clients'))}</div><button class="linkbtn" data-scroll="salons-sec">${esc(t('nav_salons'))}</button><button class="linkbtn" data-auth="register">${esc(t('register'))}</button><button class="linkbtn" data-auth="login">${esc(t('login'))}</button></div>
         <div><div class="title">${esc(t('for_business'))}</div><button class="linkbtn" data-auth="register" data-role="business">${esc(t('biz_cta'))}</button><button class="linkbtn" data-scroll="pricing">${esc(t('nav_pricing'))}</button><button class="linkbtn" data-scroll="faq">${esc(t('nav_faq'))}</button></div>
+        <div id="lpcities" style="display:none"><div class="title">${esc(t('cities'))}</div></div>
         <div class="lp-copy muted small">© ${year} ${esc(C.APP_NAME || 'Termini')} · ${esc(t('made_in'))}</div>
       </footer>`);
 
@@ -326,8 +367,8 @@
       $('#lsalons').innerHTML = list.length ? list.map(s => {
         const n = nexts[s.id];
         return `<div class="card tap" data-lsalon="${s.id}">
-          <div class="row"><div class="avatar ${esc(s.category)}">${esc(initials(s.name))}</div>
-            <div class="grow"><div class="title ellipsis">${esc(s.name)}</div><div class="muted small ellipsis">${esc(catLabel(s.category))} · ${esc(s.city)}${n ? ` · ${esc(t('from_price'))} ${esc(money(n.svc.price))}` : ''}</div></div>
+          <div class="row">${salonThumb(s)}
+            <div class="grow"><div class="title ellipsis">${esc(s.name)}</div><div class="muted small ellipsis">${s.rating_count ? `<b style="color:#B45309">★ ${Number(s.rating_avg).toFixed(1)}</b> · ` : ''}${esc(catLabel(s.category))} · ${esc(s.city)}${n ? ` · ${esc(t('from_price'))} ${esc(money(n.svc.price))}` : ''}</div></div>
             ${isOpenNow(s) ? `<span class="pill ok">${esc(t('open_now'))}</span>` : `<span class="pill mute">${esc(t('closed_now'))}</span>`}</div>
           ${n && n.slots.length ? `<div class="times">${n.day ? `<span class="small" style="align-self:center;font-weight:800;color:var(--muted)">${esc(t('next_day'))}</span>` : ''}${n.slots.map((sl, i) => `<button class="tpill ${i === 0 ? 'first' : ''}" data-lpick="${s.id}|${n.svc.id}|${sl.start.toISOString()}|${sl.staff_id}">${hm(sl.start)}</button>`).join('')}</div>` : ''}
         </div>`; }).join('') : `<div class="empty">${esc(t('no_salons'))}</div>`;
@@ -348,6 +389,12 @@
     $$('main [data-auth]').forEach(b => b.onclick = () => go('auth', { mode: b.dataset.auth, role: b.dataset.role || 'client' }));
     $$('main [data-scroll]').forEach(b => b.onclick = () => scrollToId(b.dataset.scroll));
     draw();
+    // Links to the static city pages for Google (built by the GitHub Action), if they exist
+    if (LIVE) fetch('qytet/cities.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : []).then(list => {
+      const el = $('#lpcities'); if (!el || !list.length) return;
+      el.insertAdjacentHTML('beforeend', list.slice(0, 8).map(c => `<a href="qytet/${encodeURIComponent(c.slug)}/">${esc(c.name)} (${c.count})</a>`).join('') + `<a href="qytet/">${esc(t('all_cities'))}</a>`);
+      el.style.display = '';
+    }).catch(() => {});
   }
 
   // ---------- Client ----------
@@ -384,12 +431,14 @@
 
   async function viewExplore() {
     loading();
-    const [salons, mine] = await Promise.all([DB().listSalons(), DB().myBookings().catch(() => [])]);
+    const [salons, mine, myRev] = await Promise.all([DB().listSalons(), DB().myBookings().catch(() => []), DB().myReviews().catch(() => [])]);
+    const revIds = new Set(myRev.map(r => r.booking_id));
     const cities = [...new Set(salons.map(s => s.city).filter(Boolean))].sort();
     const nexts = {};
     const nowT = Date.now();
     const nextB = mine.filter(b => b.status === 'confirmed' && new Date(b.end_at) > nowT).sort((a, b) => new Date(a.start_at) - new Date(b.start_at))[0];
     const lastB = mine.filter(b => new Date(b.start_at) < nowT && b.status !== 'cancelled' && b.service_id).sort((a, b) => new Date(b.start_at) - new Date(a.start_at))[0];
+    const toRate = mine.filter(b => b.status === 'completed' && !revIds.has(b.id)).sort((a, b) => new Date(b.start_at) - new Date(a.start_at))[0];
     const rail = `<aside class="col-side">
       <div class="card ${nextB ? '' : 'desk-only'}" style="margin-bottom:12px">
         <div class="kicker" style="margin:0 0 10px">${esc(t('next_booking'))}</div>
@@ -399,6 +448,9 @@
           <div class="actions"><a class="btn soft sm" href="${icsHref(nextB)}" download="termini.ics">${esc(t('add_calendar'))}</a><button class="btn ghost sm" data-nav2="my-bookings">${esc(t('my_bookings'))}</button></div>`
           : `<div class="muted small">${esc(t('no_next'))}</div>`}
       </div>
+      ${toRate ? `<div class="card" style="margin-bottom:12px"><div class="title">${esc(fill('review_ask', { salon: toRate.salon_name }))}</div>
+        <div class="muted small" style="margin:2px 0 10px">${esc(toRate.service_name)} · ${esc(dayName(toRate.start_at))}</div>
+        <button class="btn accent block" data-rate="${toRate.id}">★ ${esc(t('rate_visit'))}</button></div>` : ''}
       ${lastB ? `<div class="card desk-only" style="margin-bottom:12px"><div class="kicker" style="margin:0 0 8px">${esc(t('book_again'))}</div>
         <div class="title">${esc(lastB.service_name)}</div><div class="muted small" style="margin-bottom:12px">${esc(lastB.salon_name)}${lastB.staff_name ? ' · ' + esc(lastB.staff_name) : ''}</div>
         <button class="btn accent block" data-again="${lastB.salon_id}|${lastB.service_id}">${esc(t('book_again_btn'))}</button></div>` : ''}
@@ -419,10 +471,10 @@
           : `<div class="muted small" style="margin-top:10px">${esc(s.accepting === false ? t('not_accepting') : t('no_free_today'))}</div>`;
         return `<div class="card tap" data-salon="${s.id}">
           <div class="row">
-            <div class="avatar ${esc(s.category)}">${esc(initials(s.name))}</div>
+            ${salonThumb(s)}
             <div class="grow">
               <div class="title ellipsis">${esc(s.name)}</div>
-              <div class="muted small ellipsis">${esc(catLabel(s.category))} · ${esc(s.city)}${n ? ` · ${esc(t('from_price'))} ${esc(money(n.svc.price))}` : ''}</div>
+              <div class="muted small ellipsis">${s.rating_count ? `<b style="color:#B45309">★ ${Number(s.rating_avg).toFixed(1)}</b> · ` : ''}${esc(catLabel(s.category))} · ${esc(s.city)}${n ? ` · ${esc(t('from_price'))} ${esc(money(n.svc.price))}` : ''}</div>
             </div>
             ${isOpenNow(s) ? `<span class="pill ok">${esc(t('open_now'))}</span>` : `<span class="pill mute">${esc(t('closed_now'))}</span>`}
           </div>${times}
@@ -450,6 +502,7 @@
       <div class="list grid-cards" id="salons"></div></div></div>`);
     $$('[data-nav2]').forEach(b => b.onclick = () => go(b.dataset.nav2));
     $$('[data-again]').forEach(b => b.onclick = () => { const [salon, service] = b.dataset.again.split('|'); go('book', { salon, service }); });
+    $$('[data-rate]').forEach(x => x.onclick = () => reviewSheet(toRate, viewExplore));
     const inv = $('#invite'); if (inv) inv.onclick = () => shareLink(C.APP_NAME || 'Termini', location.origin + location.pathname);
     $('#q').oninput = e => { exploreState.q = e.target.value; draw(); };
     const cs = $('#city'); if (cs) cs.onchange = () => { exploreState.city = cs.value; draw(); };
@@ -467,13 +520,15 @@
   async function viewSalon() {
     loading();
     const s = await DB().getSalon(S.params.id); if (!s) return home();
-    const [services, staff] = await Promise.all([DB().listServices(s.id), DB().listStaff(s.id)]);
+    const [services, staff, reviews] = await Promise.all([DB().listServices(s.id), DB().listStaff(s.id), DB().listReviews(s.id, 12).catch(() => [])]);
     const svc = services.filter(x => x.active !== false), team = staff.filter(p => p.active !== false);
+    const photos = s.photos || [];
     const canBook = team.length && s.accepting !== false && s.status === 'active';
     shell(`
+      ${photos.length ? `<div class="gallery g${Math.min(photos.length, 3)}">${photos.map((ph, i) => `<button class="gph" data-ph="${i}" aria-label="${esc(t('photo'))} ${i + 1}"><img src="${esc(ph.url)}" alt="${esc(s.name)}" loading="${i ? 'lazy' : 'eager'}"></button>`).join('')}</div>` : ''}
       <div class="row" style="margin:4px 0 8px">
-        <div class="avatar ${esc(s.category)}" style="width:64px;height:64px;border-radius:20px;font-size:22px">${esc(initials(s.name))}</div>
-        <div class="grow"><h1 style="margin:0">${esc(s.name)}</h1><div class="muted small">${esc(catLabel(s.category))} · ${esc(s.city)}</div></div>
+        ${salonThumb(s, 'big')}
+        <div class="grow"><h1 style="margin:0">${esc(s.name)}</h1><div class="muted small">${esc(catLabel(s.category))} · ${esc(s.city)}${s.rating_count ? ` · <b style="color:var(--ink)">★ ${Number(s.rating_avg).toFixed(1)}</b> (${s.rating_count} ${esc(t('reviews_n'))})` : ''}</div></div>
       </div>
       ${s.description ? `<p class="sub">${esc(s.description)}</p>` : ''}
       <div class="actions" style="margin-top:0">
@@ -489,6 +544,9 @@
           <div class="grow"><div class="title">${esc(x.name)}</div><div class="muted small">${x.duration} ${esc(t('min'))} · <b style="color:var(--ink)">${esc(money(x.price))}</b></div></div>
           <button class="btn accent sm" data-book="${x.id}" ${canBook ? '' : 'disabled'}>${esc(t('book'))}</button>
         </div>`).join('') : `<div class="empty">—</div>`}</div>
+      <h2>${esc(t('reviews'))}${s.rating_count ? ` <span class="muted" style="font-weight:600;font-size:15px">· ★ ${Number(s.rating_avg).toFixed(1)}</span>` : ''}</h2>
+      <div class="list grid-cards">${reviews.length ? reviews.map(r => `<div class="card"><div class="row between"><span class="title">${esc(r.client_name || '—')}</span>${starRow(r.rating, 15)}</div>
+        ${r.comment ? `<p style="margin:8px 0 4px">${esc(r.comment)}</p>` : ''}<div class="muted small">${esc(fmtDate(r.created_at))}</div></div>`).join('') : `<div class="muted">${esc(t('no_reviews'))}</div>`}</div>
       </div><aside class="col-side">
       ${team.length ? `<h2>${esc(t('staff'))}</h2><div class="chips">${team.map((p, i) => `<span class="person" style="cursor:default"><span class="ini" style="${tone(i)}">${esc(initials(p.name))}</span>${esc(p.name)}</span>`).join('')}</div>` : ''}
       <h2>${esc(t('hours'))}</h2><div class="card">${hoursTable(s.hours)}</div>
@@ -500,6 +558,15 @@
       go('book', p);
     });
     $('#share').onclick = () => shareLink(s.name, salonLink(s.id));
+    $$('[data-ph]').forEach(b => b.onclick = () => {
+      let i = +b.dataset.ph;
+      sheet(`<div class="viewer"><img id="vimg" src="${esc(photos[i].url)}" alt=""><div class="row between" style="margin-top:10px">
+        <button class="btn ghost sm" id="vprev">‹</button><span class="muted small" id="vnum">${i + 1} / ${photos.length}</span><button class="btn ghost sm" id="vnext">›</button></div></div>`, el => {
+        const show = () => { $('#vimg', el).src = photos[i].url; $('#vnum', el).textContent = `${i + 1} / ${photos.length}`; };
+        $('#vprev', el).onclick = () => { i = (i - 1 + photos.length) % photos.length; show(); };
+        $('#vnext', el).onclick = () => { i = (i + 1) % photos.length; show(); };
+      });
+    });
   }
 
   function icsHref(b) {
@@ -598,7 +665,8 @@
   let bookTab = 'upcoming';
   async function viewMyBookings() {
     loading();
-    const all = await DB().myBookings(); const nowT = Date.now();
+    const [all, mine] = await Promise.all([DB().myBookings(), DB().myReviews().catch(() => [])]); const nowT = Date.now();
+    const reviewed = Object.fromEntries(mine.map(r => [r.booking_id, r.rating]));
     const up = all.filter(b => new Date(b.end_at) >= nowT && b.status === 'confirmed').sort((a, b) => new Date(a.start_at) - new Date(b.start_at));
     const past = all.filter(b => !up.includes(b)).sort((a, b) => new Date(b.start_at) - new Date(a.start_at));
     const list = bookTab === 'upcoming' ? up : past;
@@ -619,11 +687,15 @@
           ${bookTab === 'upcoming' ? `<div class="actions">
             <a class="btn soft sm" href="${icsHref(b)}" download="termini.ics">${I.calplus.replace('<svg', '<svg width="16" height="16"')}${esc(t('add_calendar'))}</a>
             ${b.salon_phone ? `<a class="btn ghost sm" href="${esc(telHref(b.salon_phone))}">${esc(t('call'))}</a>` : ''}
-            <button class="btn danger sm" data-cancel="${b.id}">${esc(t('cancel'))}</button></div>` : ''}
+            <button class="btn danger sm" data-cancel="${b.id}">${esc(t('cancel'))}</button></div>`
+          : b.status === 'completed' ? (reviewed[b.id] ? `<div class="actions" style="align-items:center"><span class="muted small">${esc(t('your_rating'))}</span>${starRow(reviewed[b.id], 16)}</div>`
+            : `<div class="actions"><button class="btn accent sm" data-review="${b.id}">★ ${esc(t('rate_visit'))}</button><button class="btn ghost sm" data-again="${b.salon_id}|${b.service_id}">${esc(t('book_again_btn'))}</button></div>`) : ''}
         </div>`; }).join('') : `<div class="empty">${esc(t('no_bookings'))}<div style="margin-top:12px"><button class="btn accent" data-nav2="explore">${esc(t('explore'))}</button></div></div>`}</div>`);
     $$('[data-tab]').forEach(b => b.onclick = () => { bookTab = b.dataset.tab; viewMyBookings(); });
     $$('[data-nav2]').forEach(b => b.onclick = () => go(b.dataset.nav2));
     $$('[data-cancel]').forEach(b => b.onclick = () => { if (confirm(t('cancel_confirm'))) guard(async () => { await DB().setBookingStatus(b.dataset.cancel, 'cancelled'); viewMyBookings(); }); });
+    $$('[data-review]').forEach(x => x.onclick = () => reviewSheet(all.find(b => b.id === x.dataset.review), viewMyBookings));
+    $$('[data-again]').forEach(x => x.onclick = () => { const [salon, service] = x.dataset.again.split('|'); if (service && service !== 'null') go('book', { salon, service }); else go('salon', { id: salon }); });
   }
 
   async function viewProfile() {
@@ -653,6 +725,7 @@
   // ---------- Business ----------
   async function bizSalon() { S.salon = await DB().mySalon(); return S.salon; }
   const TRIAL = C.TRIAL_DAYS || 30;
+  const MAX_PHOTOS = LIVE ? 6 : 4;
   const fmtDate = v => { if (!v) return '—'; const d = typeof v === 'string' && v.length === 10 ? fromYmd(v) : new Date(v); return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`; };
   const isExpired = s => !!(s.plan_until && fromYmd(s.plan_until) < fromYmd(ymd(new Date())));
   const fill = (k, o) => Object.entries(o).reduce((str, [a, b]) => str.split('{' + a + '}').join(b), t(k));
@@ -988,7 +1061,17 @@
       <div class="card" style="margin-bottom:12px">
         <div class="title">${esc(t('booking_link'))}</div><p class="muted small" style="margin:4px 0 10px">${esc(t('booking_link_hint'))}</p>
         <div class="row"><input type="text" readonly id="blink" value="${esc(salonLink(s.id))}" aria-label="${esc(t('booking_link'))}" style="flex:1;min-width:0"><button class="btn primary sm" id="copyl">${esc(t('copy'))}</button></div>
-        <div class="actions"><a class="btn wa sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(fill('link_share_msg', { salon: s.name, url: salonLink(s.id) }))}">${esc(t('whatsapp'))}</a><button class="btn ghost sm" id="sharel">${esc(t('share'))}</button></div>
+        <div class="actions"><a class="btn wa sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(fill('link_share_msg', { salon: s.name, url: salonLink(s.id) }))}">${esc(t('whatsapp'))}</a><button class="btn ghost sm" id="sharel">${esc(t('share'))}</button><button class="btn primary sm" data-nav2="biz-qr">${esc(t('qr_btn'))}</button></div>
+      </div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="row between"><span class="title">${esc(t('photos'))} <span class="muted small">(${(s.photos || []).length}/${MAX_PHOTOS})</span></span>
+          ${(s.photos || []).length < MAX_PHOTOS ? `<label class="btn soft sm" style="cursor:pointer">+ ${esc(t('add_photo'))}<input type="file" id="phin" accept="image/*" multiple hidden></label>` : ''}</div>
+        <p class="muted small" style="margin:4px 0 10px">${esc(t('photos_hint'))}</p>
+        <div class="phgrid">${(s.photos || []).map((ph, i) => `<div class="phitem"><img src="${esc(ph.url)}" alt="" loading="lazy">${i === 0 ? `<span class="pill info phcover">${esc(t('cover'))}</span>` : `<button class="phcov" data-cover="${i}">${esc(t('make_cover'))}</button>`}<button class="phdel" data-delph="${i}" aria-label="${esc(t('delete'))}">×</button></div>`).join('') || `<div class="muted small">${esc(t('no_photos'))}</div>`}</div>
+      </div>
+      <div class="card" style="margin-bottom:12px" id="revcard">
+        <div class="row between"><span class="title">${esc(t('reviews'))}</span>${s.rating_count ? `<span>${starRow(Number(s.rating_avg), 16)} <b>${Number(s.rating_avg).toFixed(1)}</b> <span class="muted small">(${s.rating_count})</span></span>` : ''}</div>
+        <div id="revlist" class="muted small" style="margin-top:8px">…</div>
       </div>
       <div class="card">${salonForm(s)}</div>
       ${C.ADMIN_PHONE || C.CONTACT_EMAIL ? `<div class="card" style="margin-top:12px"><div class="title">${esc(t('help_title'))}</div><p class="muted small" style="margin:4px 0 10px">${esc(t('help_body'))}</p>
@@ -996,6 +1079,47 @@
     bindSalonForm(s, () => viewBizSalon());
     $('#copyl').onclick = async () => { try { await navigator.clipboard.writeText(salonLink(s.id)); toast(t('link_copied')); } catch { $('#blink').select(); } };
     $('#sharel').onclick = () => shareLink(s.name, salonLink(s.id));
+    $$('[data-nav2]').forEach(b => b.onclick = () => go(b.dataset.nav2));
+    const savePhotos = async photos => { S.salon = await DB().saveSalon({ id: s.id, photos }); viewBizSalon(); };
+    const phin = $('#phin'); if (phin) phin.onchange = () => guard(async () => {
+      const files = [...phin.files].slice(0, MAX_PHOTOS - (s.photos || []).length); if (!files.length) return;
+      toast(t('uploading'));
+      const added = [];
+      for (const f of files) { const blob = await resizeImage(f); added.push(await DB().uploadPhoto(s.id, blob)); }
+      await savePhotos([...(s.photos || []), ...added]); toast(t('saved'));
+    });
+    $$('[data-delph]').forEach(b => b.onclick = () => { if (!confirm(t('delete_confirm'))) return; guard(async () => {
+      const i = +b.dataset.delph, ph = s.photos[i]; await DB().deletePhoto(s.id, ph); await savePhotos(s.photos.filter((_, k) => k !== i)); }); });
+    $$('[data-cover]').forEach(b => b.onclick = () => guard(async () => {
+      const i = +b.dataset.cover, arr = [...s.photos]; const [ph] = arr.splice(i, 1); arr.unshift(ph); await savePhotos(arr); }));
+    DB().listReviews(s.id, 5).then(rs => { const el = $('#revlist'); if (!el) return;
+      el.innerHTML = rs.length ? rs.map(r => `<div style="padding:8px 0;border-top:1px solid var(--line);color:var(--ink)"><div class="row between"><b>${esc(r.client_name || '—')}</b>${starRow(r.rating, 14)}</div>${r.comment ? `<div style="margin-top:4px">${esc(r.comment)}</div>` : ''}<div class="muted small">${esc(fmtDate(r.created_at))}</div></div>`).join('') : esc(t('no_reviews')); }).catch(() => {});
+  }
+
+  async function viewBizQr() {
+    loading();
+    const s = await bizSalon(); if (!s) return viewBizSetup();
+    if (!window.qrcode) await loadScript('js/vendor/qrcode.js');
+    const url = salonLink(s.id);
+    const qr = window.qrcode(0, 'M'); qr.addData(url); qr.make();
+    const svg = qr.createSvgTag({ cellSize: 10, margin: 0, scalable: true });
+    shell(`<div class="noprint">
+        <h1>${esc(t('qr_title'))}</h1><p class="sub">${esc(t('qr_sub'))}</p>
+        <div class="actions" style="margin:0 0 18px"><button class="btn accent" id="print">${esc(t('print'))}</button>
+          <a class="btn ghost" download="termini-qr-${esc(s.id.slice(0, 8))}.svg" href="data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}">${esc(t('download_qr'))}</a></div>
+      </div>
+      <div class="poster">
+        <div class="poster-top"><img src="icons/icon.svg" alt="" width="54" height="54"><span>${esc(C.APP_NAME || 'Termini')}</span></div>
+        <div class="poster-body">
+          <div class="poster-name">${esc(s.name)}</div>
+          <div class="poster-cta">${esc(t('qr_cta'))}</div>
+          <div class="poster-qr">${svg}</div>
+          <div class="poster-scan">${esc(t('qr_scan'))}</div>
+          <div class="poster-url">${esc(url.replace(/^https?:\/\//, ''))}</div>
+        </div>
+        <div class="poster-foot">${esc(t('qr_foot'))}</div>
+      </div>`, { back: true });
+    $('#print').onclick = () => window.print();
   }
 
   // ---------- Admin ----------

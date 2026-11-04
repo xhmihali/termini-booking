@@ -19,7 +19,7 @@
     const H = (o, c) => ({ open: o, close: c });
     const week = (o, c, sat, sun) => [sun, H(o, c), H(o, c), H(o, c), H(o, c), H(o, c), sat];
     const trialEnd = addDays(new Date(), 30).toISOString().slice(0, 10);
-    const db = { users: [], salons: [], services: [], staff: [], bookings: [] };
+    const db = { users: [], salons: [], services: [], staff: [], bookings: [], reviews: [] };
     const u = (email, name, phone, role) => { const x = { id: uid(), email, password: 'demo123', name, phone, role, created_at: now() }; db.users.push(x); return x; };
     const admin = u('admin@demo.al', 'Admin Termini', '0690000000', 'admin');
     const b1 = u('berber@demo.al', 'Arben Hoxha', '0691111111', 'business');
@@ -30,7 +30,7 @@
     void admin;
     const salon = (owner, name, category, city, address, desc, hours, status, plan) => {
       const s = { id: uid(), owner_id: owner.id, name, category, city, address, phone: owner.phone, description: desc,
-        hours, status, plan, plan_until: status === 'active' ? trialEnd : null, approved_at: status === 'active' ? addDays(new Date(), -60).toISOString() : null, accepting: true, created_at: now() };
+        hours, status, plan, plan_until: status === 'active' ? trialEnd : null, approved_at: status === 'active' ? addDays(new Date(), -60).toISOString() : null, accepting: true, photos: [], rating_avg: null, rating_count: 0, created_at: now() };
       db.salons.push(s); return s;
     };
     const s1 = salon(b1, 'Berberia Elegance', 'barber', 'Tiranë', 'Rr. Myslym Shyri 24', 'Prerje klasike dhe moderne, rruajtje me peshqir të nxehtë.',
@@ -47,16 +47,30 @@
     const arben = st(s1, 'Arben'), dori = st(s1, 'Dori'), elira = st(s2, 'Elira');
     const bk = (s, sv, staff, client, start, status) => {
       const end = new Date(start.getTime() + sv.duration * 60000);
-      db.bookings.push({ id: uid(), salon_id: s.id, service_id: sv.id, staff_id: staff.id, client_id: client.id,
-        start_at: start.toISOString(), end_at: end.toISOString(), price: sv.price, status, note: '', created_at: now() });
+      const b = { id: uid(), salon_id: s.id, service_id: sv.id, staff_id: staff.id, client_id: client.id,
+        start_at: start.toISOString(), end_at: end.toISOString(), price: sv.price, status, note: '', created_at: now() };
+      db.bookings.push(b); return b;
     };
+    const rv = (b, client, rating, comment, daysAgo) => db.reviews.push({ id: uid(), booking_id: b.id, salon_id: b.salon_id, client_id: client.id,
+      client_name: shortName(client.name), rating, comment, created_at: addDays(new Date(), -daysAgo).toISOString() });
     bk(s1, cut, arben, c1, at(0, 10, 0), 'confirmed'); bk(s1, beard, dori, c2, at(0, 11, 30), 'confirmed');
     bk(s1, cut, arben, c2, at(0, 15, 0), 'confirmed'); bk(s1, cut, dori, c1, at(1, 12, 0), 'confirmed');
     bk(s1, cut, arben, c1, at(-3, 17, 0), 'completed'); bk(s2, blow, elira, c1, at(2, 11, 0), 'confirmed');
     bk(s1, beard, arben, c2, at(-1, 9, 30), 'no_show');
+    rv(bk(s1, cut, dori, c2, at(-8, 16, 0), 'completed'), c2, 5, 'Prerja më e mirë në Tiranë. Dori shumë profesional!', 8);
+    rv(bk(s1, beard, arben, c2, at(-15, 12, 0), 'completed'), c2, 4, 'Shërbim i shpejtë dhe i pastër.', 15);
+    rv(bk(s2, blow, elira, c2, at(-6, 11, 0), 'completed'), c2, 5, 'Elira është fantastike, flokët dolën perfekt.', 6);
+    db.salons.forEach(s => recompute(db, s.id));
     save(db); return db;
   }
 
+  const shortName = n => { const p = String(n || '').trim().split(/\s+/); return p[0] + (p[1] ? ' ' + p[1][0] + '.' : ''); };
+  function recompute(db, salonId) {
+    const s = db.salons.find(x => x.id === salonId); if (!s) return;
+    const rs = (db.reviews || []).filter(r => r.salon_id === salonId);
+    s.rating_count = rs.length; s.rating_avg = rs.length ? Math.round(rs.reduce((n, r) => n + r.rating, 0) / rs.length * 100) / 100 : null;
+  }
+  const blobToDataUrl = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob); });
   const strip = u => u && ({ id: u.id, email: u.email, name: u.name, phone: u.phone, role: u.role, created_at: u.created_at });
   function me(db) { const s = ls.get(SKEY) || (mem && mem.__session); return db.users.find(u => u.id === s) || null; }
   function setSession(db, id) { ls.set(SKEY, id); if (mem) mem.__session = id; }
@@ -94,12 +108,12 @@
     async mySalon() { const db = load(); const u = need(db); return db.salons.find(s => s.owner_id === u.id) || null; },
     async saveSalon(data) {
       const db = load(); const u = need(db, 'business');
-      const fields = ['name', 'category', 'city', 'address', 'phone', 'description', 'hours', 'accepting'];
+      const fields = ['name', 'category', 'city', 'address', 'phone', 'description', 'hours', 'accepting', 'photos'];
       let s = data.id && db.salons.find(x => x.id === data.id);
       if (s) { if (!ownsSalon(db, u, s.id)) throw new Error('FORBIDDEN'); fields.forEach(f => { if (f in data) s[f] = data[f]; }); }
       else {
         s = { id: uid(), owner_id: u.id, status: 'pending', plan: 'trial', plan_until: null, approved_at: null, created_at: now() };
-        fields.forEach(f => { s[f] = data[f]; }); if (s.accepting === undefined) s.accepting = true; db.salons.push(s);
+        fields.forEach(f => { s[f] = data[f]; }); if (s.accepting === undefined) s.accepting = true; s.photos = s.photos || []; s.rating_avg = null; s.rating_count = 0; db.salons.push(s);
       }
       save(db); return s;
     },
@@ -152,6 +166,22 @@
       const isOwner = ownsSalon(db, u, b.salon_id);
       if (!isOwner && !(b.client_id === u.id && status === 'cancelled')) throw new Error('FORBIDDEN');
       b.status = status; save(db); return enrich(db, b);
+    },
+
+    // Photos (demo: stored in the browser as small JPEG data URLs)
+    async uploadPhoto(salonId, blob) { const db = load(); const u = need(db, 'business'); if (!ownsSalon(db, u, salonId)) throw new Error('FORBIDDEN');
+      return { url: await blobToDataUrl(blob), path: uid() }; },
+    async deletePhoto() {},
+    // Reviews
+    async listReviews(salonId, limit = 20) { return (load().reviews || []).filter(r => r.salon_id === salonId).sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, limit); },
+    async myReviews() { const db = load(); const u = need(db); return (db.reviews || []).filter(r => r.client_id === u.id); },
+    async createReview({ booking_id, rating, comment }) {
+      const db = load(); const u = need(db); db.reviews = db.reviews || [];
+      const b = db.bookings.find(x => x.id === booking_id);
+      if (!b || b.client_id !== u.id || b.status !== 'completed') throw new Error('FORBIDDEN');
+      if (db.reviews.some(r => r.booking_id === booking_id)) throw new Error('FORBIDDEN');
+      const r = { id: uid(), booking_id, salon_id: b.salon_id, client_id: u.id, client_name: shortName(u.name), rating: Math.max(1, Math.min(5, rating | 0)), comment: String(comment || '').slice(0, 500), created_at: now() };
+      db.reviews.push(r); recompute(db, b.salon_id); save(db); return r;
     },
 
     async adminSalons() { const db = load(); need(db, 'admin');

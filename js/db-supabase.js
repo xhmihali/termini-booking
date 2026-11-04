@@ -57,7 +57,7 @@
     async getSalon(id) { return q(sb.from('salons').select('*').eq('id', id).maybeSingle()); },
     async mySalon() { return q(sb.from('salons').select('*').eq('owner_id', uidOrThrow()).maybeSingle()); },
     async saveSalon(d) {
-      const row = { name: d.name, category: d.category, city: d.city, address: d.address, phone: d.phone, description: d.description, hours: d.hours, accepting: d.accepting };
+      const row = { name: d.name, category: d.category, city: d.city, address: d.address, phone: d.phone, description: d.description, hours: d.hours, accepting: d.accepting, photos: d.photos };
       Object.keys(row).forEach(k => row[k] === undefined && delete row[k]);
       if (d.id) return q(sb.from('salons').update(row).eq('id', d.id).select().single());
       return q(sb.from('salons').insert({ ...row, owner_id: uidOrThrow() }).select().single());
@@ -92,6 +92,21 @@
       return q(sb.from('bookings').select('*').eq('salon_id', salonId).lt('start_at', to).gt('end_at', from).order('start_at'));
     },
     async setBookingStatus(id, status) { return q(sb.from('bookings').update({ status }).eq('id', id).select().single()); },
+
+    // Photos in the free Supabase Storage bucket "salon-photos" (folder = salon id)
+    async uploadPhoto(salonId, blob) {
+      const path = `${salonId}/${(crypto.randomUUID && crypto.randomUUID()) || Date.now()}.jpg`;
+      const { error } = await sb.storage.from('salon-photos').upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: false, cacheControl: '31536000' });
+      fail(error);
+      return { url: sb.storage.from('salon-photos').getPublicUrl(path).data.publicUrl, path };
+    },
+    async deletePhoto(salonId, photo) { if (photo && photo.path) { const { error } = await sb.storage.from('salon-photos').remove([photo.path]); fail(error); } },
+    // Reviews
+    async listReviews(salonId, limit = 20) { return q(sb.from('reviews').select('id,rating,comment,client_name,created_at,booking_id').eq('salon_id', salonId).order('created_at', { ascending: false }).limit(limit)); },
+    async myReviews() { return q(sb.from('reviews').select('id,booking_id,rating,salon_id').eq('client_id', uidOrThrow())); },
+    async createReview({ booking_id, rating, comment }) {
+      return q(sb.from('reviews').insert({ booking_id, rating, comment: comment || '', client_id: uidOrThrow(), salon_id: '00000000-0000-0000-0000-000000000000' }).select().single());
+    },
 
     async adminSalons() {
       const rows = await q(sb.from('salons').select('*, profiles(name,email,phone)').order('created_at', { ascending: false }));
