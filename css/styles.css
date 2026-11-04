@@ -15,20 +15,49 @@
 html { background: var(--bg); }
 html, body { margin: 0; min-height: 100%; }
 body { background: transparent; position: relative; }
-/* Brand background: soft violet / blue / coral glow + fine dot grid (pure CSS, no images) */
-body::before { content: ""; position: fixed; inset: -15%; z-index: -2; pointer-events: none;
-  background:
-    radial-gradient(42% 38% at 8% 6%, rgba(123,92,255,.26), transparent 70%),
-    radial-gradient(38% 34% at 96% 12%, rgba(43,63,224,.20), transparent 70%),
-    radial-gradient(44% 40% at 92% 96%, rgba(255,106,61,.24), transparent 70%),
-    radial-gradient(36% 32% at 4% 92%, rgba(236,72,153,.12), transparent 70%);
-  animation: drift 26s ease-in-out infinite alternate; }
-body::after { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-  background-image: radial-gradient(rgba(20,22,43,.07) 1px, transparent 1.2px); background-size: 22px 22px;
-  -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,.9), rgba(0,0,0,.25) 60%, rgba(0,0,0,.6));
-          mask-image: linear-gradient(180deg, rgba(0,0,0,.9), rgba(0,0,0,.25) 60%, rgba(0,0,0,.6)); }
-@keyframes drift { 0% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(3%, -2%, 0) scale(1.05); } 100% { transform: translate3d(-3%, 3%, 0) scale(1.02); } }
-@media (prefers-reduced-motion: reduce) { body::before { animation: none; } }
+/* ===== Living background: 3D glossy orbs, glass shards, moving 3D grid floor, drifting dots (js/bg.js) ===== */
+html { background: #EAEBFF; }
+.bg-scene { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+  background: linear-gradient(165deg, #E6E8FF 0%, #EFE9FF 42%, #FFEBE2 100%); }
+.bg-scene canvas { position: absolute; inset: 0; }
+.orb { position: absolute; border-radius: 50%; will-change: transform; }
+/* glossy 3D spheres: highlight top-left, colour body, darker rim */
+.o1 { width: 52vmax; height: 52vmax; left: -18vmax; top: -20vmax; filter: blur(6px); opacity: .85;
+  background: radial-gradient(circle at 34% 30%, rgba(255,255,255,.95) 0 4%, rgba(167,150,255,.9) 14%, rgba(123,92,255,.7) 38%, rgba(70,60,230,.45) 58%, rgba(43,63,224,0) 72%);
+  animation: orb1 22s ease-in-out infinite alternate; }
+.o2 { width: 46vmax; height: 46vmax; right: -16vmax; bottom: -18vmax; filter: blur(8px); opacity: .78;
+  background: radial-gradient(circle at 36% 32%, rgba(255,255,255,.9) 0 4%, rgba(255,170,140,.9) 15%, rgba(255,106,61,.75) 40%, rgba(236,72,153,.4) 60%, rgba(255,106,61,0) 72%);
+  animation: orb2 26s ease-in-out infinite alternate; }
+.o3 { width: 15vmax; height: 15vmax; right: 8vw; top: 16vh; opacity: .95;
+  background: radial-gradient(circle at 32% 28%, #fff 0 6%, #A9B8FF 18%, #4E5DFF 50%, #2232C8 78%, #1A2399 100%);
+  box-shadow: 0 30px 60px rgba(43,63,224,.35), inset -10px -14px 30px rgba(10,14,80,.35);
+  animation: orb3 14s ease-in-out infinite alternate; }
+.o4 { width: 8vmax; height: 8vmax; left: 9vw; bottom: 22vh; opacity: .95;
+  background: radial-gradient(circle at 32% 28%, #fff 0 7%, #FFC2AA 20%, #FF6A3D 55%, #D9481E 85%);
+  box-shadow: 0 20px 40px rgba(255,106,61,.35), inset -6px -8px 18px rgba(120,30,0,.3);
+  animation: orb4 11s ease-in-out infinite alternate; }
+@keyframes orb1 { to { transform: translate3d(6vw, 5vh, 0) scale(1.08); } }
+@keyframes orb2 { to { transform: translate3d(-7vw, -6vh, 0) scale(1.1); } }
+@keyframes orb3 { 0% { transform: translate3d(0,0,0); } 50% { transform: translate3d(-3vw, 6vh, 0) scale(1.06); } 100% { transform: translate3d(-8vw, 2vh, 0) scale(.96); } }
+@keyframes orb4 { to { transform: translate3d(6vw, -8vh, 0) scale(1.12); } }
+/* frosted glass shards floating in 3D */
+.shard { position: absolute; border-radius: 28px; background: linear-gradient(135deg, rgba(255,255,255,.55), rgba(255,255,255,.12));
+  border: 1px solid rgba(255,255,255,.7); box-shadow: 0 20px 50px rgba(43,63,224,.12), inset 0 1px 0 rgba(255,255,255,.9);
+  backdrop-filter: blur(14px) saturate(160%); -webkit-backdrop-filter: blur(14px) saturate(160%); will-change: transform; }
+.s1 { width: 26vmin; height: 34vmin; left: 4vw; top: 30vh; animation: shard1 18s ease-in-out infinite alternate; }
+.s2 { width: 22vmin; height: 22vmin; right: 18vw; bottom: 10vh; border-radius: 50%; animation: shard2 21s ease-in-out infinite alternate; }
+.s3 { width: 16vmin; height: 24vmin; right: 3vw; top: 52vh; animation: shard3 16s ease-in-out infinite alternate; }
+@keyframes shard1 { from { transform: perspective(800px) rotateX(18deg) rotateY(-24deg) rotateZ(-8deg); } to { transform: perspective(800px) translate3d(4vw, -6vh, 0) rotateX(-12deg) rotateY(20deg) rotateZ(6deg); } }
+@keyframes shard2 { from { transform: perspective(800px) rotateX(-20deg) rotateY(18deg); } to { transform: perspective(800px) translate3d(-6vw, -4vh, 0) rotateX(16deg) rotateY(-22deg); } }
+@keyframes shard3 { from { transform: perspective(800px) rotateY(28deg) rotateZ(10deg); } to { transform: perspective(800px) translate3d(-3vw, 5vh, 0) rotateY(-18deg) rotateZ(-6deg); } }
+/* 3D grid floor moving towards you */
+.grid3d { position: absolute; left: -50%; right: -50%; bottom: -6vh; height: 48vh; transform-origin: 50% 100%; transform: perspective(520px) rotateX(64deg);
+  background-image: linear-gradient(rgba(91,59,232,.30) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(91,59,232,.30) 1.5px, transparent 1.5px);
+  background-size: 56px 56px; animation: gridmove 3.2s linear infinite;
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,.9), transparent 88%); mask-image: linear-gradient(to top, rgba(0,0,0,.9), transparent 88%); }
+@keyframes gridmove { to { background-position: 0 56px, 0 0; } }
+@media (prefers-reduced-motion: reduce) { .orb, .shard, .grid3d { animation: none !important; } }
+@media print { .bg-scene { display: none !important; } }
 body { font-size: 15px; line-height: 1.45; }
 button, input, select, textarea { font: inherit; color: inherit; }
 a { color: var(--accent); }
@@ -55,7 +84,7 @@ h2 { font-size: 18px; font-weight: 800; margin: 24px 0 10px; letter-spacing: -.0
 .kicker { font-size: 13px; font-weight: 800; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; margin: 18px 0 8px; }
 
 /* Cards & lists */
-.card { background: rgba(255,255,255,.92); border-radius: var(--r); padding: 14px; box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,.7); }
+.card { background: rgba(255,255,255,.68); border-radius: var(--r); padding: 14px; box-shadow: 0 8px 30px rgba(43,63,224,.08), inset 0 1px 0 rgba(255,255,255,.9); border: 1px solid rgba(255,255,255,.75); backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%); }
 .card + .card { margin-top: 10px; }
 .list { display: flex; flex-direction: column; gap: 10px; }
 .tap { cursor: pointer; transition: transform .08s ease, box-shadow .15s; }
@@ -190,7 +219,7 @@ textarea { min-height: 72px; resize: vertical; }
 .notice.bad { background: var(--bad-soft); color: #7a1810; }
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 12px 0 4px; }
 .stats.two { grid-template-columns: repeat(2, 1fr); }
-.stat { background: var(--card); border-radius: 20px; padding: 12px; box-shadow: var(--shadow); min-width: 0; }
+.stat { background: rgba(255,255,255,.68); border-radius: 20px; padding: 12px; box-shadow: 0 8px 26px rgba(43,63,224,.08), inset 0 1px 0 rgba(255,255,255,.9); border: 1px solid rgba(255,255,255,.75); backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%); min-width: 0; }
 .stat .v { font-size: 22px; font-weight: 800; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stat .l { font-size: 12px; color: var(--muted); font-weight: 600; }
 .stat.accent { background: var(--accent); color: #fff; } .stat.accent .l { color: rgba(255,255,255,.85); }
@@ -468,8 +497,38 @@ textarea { min-height: 72px; resize: vertical; }
 @media print {
   @page { size: A5 portrait; margin: 0; }
   html, body { background: #fff !important; }
-  body::before, body::after, .nav, .top, .noprint, .app-footer, .toast, .cta, .fab, .scrim { display: none !important; }
+  body::before, body::after, .bg-scene, .nav, .top, .noprint, .app-footer, .toast, .cta, .fab, .scrim { display: none !important; }
   .layout, .layout.with-nav { display: block !important; }
   .wrap, main { padding: 0 !important; margin: 0 !important; max-width: none !important; }
   .poster { width: 148mm; height: 210mm; max-width: none; border-radius: 0; box-shadow: none; aspect-ratio: auto; }
 }
+
+/* ===== Bottom bar / sidebar: glass + sliding liquid indicator + icon pop ===== */
+.nav .in { position: relative; background: rgba(20,22,43,.84); backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(255,255,255,.08); box-shadow: 0 14px 40px rgba(20,22,43,.32), inset 0 1px 0 rgba(255,255,255,.08); }
+.nav button { position: relative; z-index: 1; transition: color .25s; }
+.nav button.on { background: transparent; color: #fff; }
+.nav-ind { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 15px; pointer-events: none;
+  background: linear-gradient(135deg, #7B5CFF, #2B3FE0 60%, #3B4CFF); box-shadow: 0 8px 22px rgba(91,59,232,.55), inset 0 1px 0 rgba(255,255,255,.35);
+  transition: transform .55s cubic-bezier(.34,1.45,.5,1), width .5s cubic-bezier(.34,1.3,.5,1), height .5s cubic-bezier(.34,1.3,.5,1); }
+.nav-ind::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(60% 80% at 80% 110%, rgba(255,106,61,.75), transparent 60%); }
+.nav-ind.moving { animation: squish .52s ease; }
+@keyframes squish { 30% { filter: brightness(1.15); } 45% { border-radius: 22px; } }
+.nav button.on svg { animation: navpop .55s cubic-bezier(.3,1.7,.5,1); }
+.nav button.on span { animation: navlbl .4s ease both .06s; }
+@keyframes navpop { 0% { transform: scale(.55) rotate(-14deg); } 60% { transform: scale(1.18) rotate(4deg); } 100% { transform: none; } }
+@keyframes navlbl { from { opacity: 0; transform: translateX(-6px); } }
+.nav button:active svg { transform: scale(.88); }
+
+/* ===== Page transitions ===== */
+main.enter-up { animation: pageUp .45s cubic-bezier(.2,.8,.2,1) both; }
+main.enter-r { animation: pageR .42s cubic-bezier(.2,.8,.2,1) both; }
+main.enter-l { animation: pageL .42s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes pageUp { from { opacity: 0; transform: translateY(14px); } }
+@keyframes pageR { from { opacity: 0; transform: translateX(28px); } }
+@keyframes pageL { from { opacity: 0; transform: translateX(-28px); } }
+main[class^="enter"] .card, main[class^="enter"] .stat { animation: cardIn .5s cubic-bezier(.2,.8,.2,1) both; }
+main[class^="enter"] .list > :nth-child(2) { animation-delay: .04s; } main[class^="enter"] .list > :nth-child(3) { animation-delay: .08s; }
+main[class^="enter"] .list > :nth-child(4) { animation-delay: .12s; } main[class^="enter"] .list > :nth-child(n+5) { animation-delay: .16s; }
+@keyframes cardIn { from { opacity: 0; transform: translateY(10px) scale(.985); } }
+@media (prefers-reduced-motion: reduce) { main[class^="enter"], main[class^="enter"] .card, main[class^="enter"] .stat, .nav-ind, .nav button.on svg, .nav button.on span { animation: none !important; transition: none !important; } }

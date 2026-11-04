@@ -171,10 +171,23 @@
   };
   const NAV_OF = { salon: 'explore', book: 'explore', 'biz-qr': 'biz-salon' };
 
+  const navMem = { idx: null, anim: '' };
   function shell(content, opts = {}) {
     const nav = S.user ? NAVS[S.user.role] || [] : [];
     const active = NAV_OF[S.route] || S.route;
     const showNav = nav.length;
+    // remember where the sliding tab indicator is right now, so it can glide to the new tab
+    let from = null;
+    const oldInd = $('.nav-ind'), oldIn = $('.nav .in');
+    if (oldInd && oldIn && oldIn.offsetParent) { const r = oldInd.getBoundingClientRect(), p = oldIn.getBoundingClientRect(); from = { x: r.left - p.left, y: r.top - p.top, w: r.width, h: r.height }; }
+    const newIdx = nav.findIndex(([r]) => r === active);
+    // page enter animation once per route (not for the loading spinner)
+    const key = S.route + JSON.stringify(S.params || {});
+    let enter = '';
+    if (!opts.loading && navMem.anim !== key) {
+      enter = navMem.idx != null && newIdx >= 0 && newIdx !== navMem.idx ? (newIdx > navMem.idx ? 'enter-r' : 'enter-l') : 'enter-up';
+      navMem.anim = key;
+    }
     app().innerHTML = `
       <div class="layout ${showNav ? 'with-nav' : ''}">
       ${showNav ? `<nav class="nav ${opts.cta ? 'hide-m' : ''}"><div class="in"><div class="nav-brand"><img src="icons/icon.svg" alt="" width="36" height="36">${esc(C.APP_NAME || 'Termini')}</div>${nav.map(([r, k, ic]) => `<button class="${active === r ? 'on' : ''}" data-nav="${r}" aria-label="${esc(t(k))}">${ic}<span>${esc(t(k))}</span></button>`).join('')}</div></nav>` : ''}
@@ -187,7 +200,7 @@
           <button class="lang" data-lang>${lang === 'sq' ? 'EN' : 'SQ'}</button>
           ${!S.user && S.route !== 'auth' ? `<button class="btn ghost sm" data-auth="login">${esc(t('login'))}</button><button class="btn accent sm hide-sm" data-auth="register">${esc(t('register'))}</button>` : ''}
         </header>
-        <main>${content}</main>
+        <main class="${enter}">${content}</main>
         ${S.user ? `<footer class="app-footer"><span>© ${new Date().getFullYear()} ${esc(C.APP_NAME || 'Termini')}</span>${S.user.role === 'business' && C.ADMIN_PHONE ? `<a target="_blank" rel="noopener" href="https://wa.me/${waNumber(C.ADMIN_PHONE)}">${esc(t('contact_admin'))}</a>` : ''}${S.user.role === 'business' && C.CONTACT_EMAIL ? `<a href="mailto:${esc(C.CONTACT_EMAIL)}">${esc(C.CONTACT_EMAIL)}</a>` : ''}</footer>` : ''}
       </div>
       </div>
@@ -197,10 +210,26 @@
     const bk = $('[data-back]'); if (bk) bk.onclick = () => (history.length > 1 ? history.back() : home());
     $('[data-lang]').onclick = () => { lang = lang === 'sq' ? 'en' : 'sq'; store.set('termini_lang', lang); document.documentElement.lang = lang; render(); };
     const br = $('[data-brand]'); if (br) br.onclick = () => home();
+    placeNavIndicator(from);
+    if (newIdx >= 0 && !opts.loading) navMem.idx = newIdx;
     $$('[data-scroll]').forEach(b => b.onclick = () => scrollToId(b.dataset.scroll));
     $$('[data-auth]').forEach(b => b.onclick = () => go('auth', { mode: b.dataset.auth, role: b.dataset.role || 'client' }));
   }
-  const loading = () => shell('<div class="spinner"></div>');
+  const loading = () => shell('<div class="spinner"></div>', { loading: true });
+  // Sliding "liquid" pill behind the active tab (bottom bar on phones, sidebar on desktop)
+  function placeNavIndicator(from) {
+    const inn = $('.nav .in'), on = $('.nav button.on'); if (!inn || !on) return;
+    const ind = document.createElement('span'); ind.className = 'nav-ind'; ind.setAttribute('aria-hidden', 'true'); inn.prepend(ind);
+    const set = (x, y, w, h) => { ind.style.transform = `translate3d(${x}px, ${y}px, 0)`; ind.style.width = w + 'px'; ind.style.height = h + 'px'; };
+    const target = () => { const r = on.getBoundingClientRect(), p = inn.getBoundingClientRect(); return [r.left - p.left, r.top - p.top, r.width, r.height]; };
+    if (from && from.w) {
+      ind.style.transition = 'none'; set(from.x, from.y, from.w, from.h); void ind.offsetWidth;
+      ind.style.transition = ''; requestAnimationFrame(() => { set(...target()); ind.classList.add('moving'); setTimeout(() => ind.classList.remove('moving'), 520); });
+    } else { ind.style.transition = 'none'; set(...target()); void ind.offsetWidth; ind.style.transition = ''; }
+  }
+  window.addEventListener('resize', () => { const inn = $('.nav .in'), on = $('.nav button.on'), ind = $('.nav-ind'); if (!inn || !on || !ind) return;
+    const r = on.getBoundingClientRect(), p = inn.getBoundingClientRect(); ind.style.transition = 'none';
+    ind.style.transform = `translate3d(${r.left - p.left}px, ${r.top - p.top}px, 0)`; ind.style.width = r.width + 'px'; ind.style.height = r.height + 'px'; });
 
   async function render() {
     if (!S.user) {

@@ -27,10 +27,17 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+  <div class="bg-scene" aria-hidden="true">
+    <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div><div class="orb o4"></div>
+    <div class="grid3d"></div>
+    <div class="shard s1"></div><div class="shard s2"></div><div class="shard s3"></div>
+    <canvas id="bg-dots"></canvas>
+  </div>
   <div id="app"><div class="spinner"></div></div>
   <noscript>Termini needs JavaScript.</noscript>
   <script src="config.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/bg.js" defer></script>
 </body>
 </html>

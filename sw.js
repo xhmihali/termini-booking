@@ -1,8 +1,8 @@
 // Termini service worker: caches the app shell so it opens fast and offline.
 // Bump VERSION whenever you change files, so phones pick up the update.
-const VERSION = 'termini-v9';
+const VERSION = 'termini-v10';
 const SHELL = ['./', 'index.html', 'config.js', 'css/styles.css', 'js/i18n.js', 'js/app.js', 'js/db-demo.js', 'js/db-supabase.js',
-  'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png', 'js/vendor/qrcode.js'];
+  'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png', 'js/vendor/qrcode.js', 'js/bg.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
