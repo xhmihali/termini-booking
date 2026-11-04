@@ -56,7 +56,9 @@ window.I18N = {
     expired_msg: 'Përshëndetje {name}, paketa e sallonit "{salon}" në Termini skadoi më {date} dhe salloni nuk shfaqet te klientët. Për ta rinovuar, më shkruani këtu. Faleminderit!',
     admin_msg: 'Përshëndetje, dua të rinovoj paketën për sallonin "{salon}" në Termini.',
     setup_title2: 'Përgatit sallonin', setup_progress: '{a} nga {b} gati', step_created: 'Llogaria dhe salloni', step_hours: 'Orari i punës',
-    step_services: 'Shërbimet', step_staff: 'Stafi', step_approval: 'Miratimi nga admini', step_wait: 'në pritje'
+    step_services: 'Shërbimet', step_staff: 'Stafi', step_approval: 'Miratimi nga admini', step_wait: 'në pritje', hero_desktop_sub: 'Termini lidh klientët me berberët, sallonet e bukurisë dhe studiot e thonjve. Orë të lira në kohë reale, pa telefonata.',
+    for_clients: 'Për klientët', for_business: 'Për bizneset', f_c1: 'Shiko orët e lira tani', f_c2: 'Rezervo me një prekje', f_c3: 'Kujtesë në kalendar',
+    f_b1: 'Axhendë dixhitale për gjithë stafin', f_b2: 'Kujtesa me WhatsApp', f_b3: 'Më pak klientë që nuk vijnë'
   },
   en: {
     tagline: 'Book your barber or salon in seconds',
@@ -114,6 +116,8 @@ window.I18N = {
     expired_msg: 'Hello {name}, the plan for "{salon}" on Termini expired on {date} and the salon is hidden from clients. To renew, reply here. Thank you!',
     admin_msg: 'Hello, I would like to renew the plan for "{salon}" on Termini.',
     setup_title2: 'Get your salon ready', setup_progress: '{a} of {b} done', step_created: 'Account and salon', step_hours: 'Opening hours',
-    step_services: 'Services', step_staff: 'Staff', step_approval: 'Admin approval', step_wait: 'waiting'
+    step_services: 'Services', step_staff: 'Staff', step_approval: 'Admin approval', step_wait: 'waiting', hero_desktop_sub: 'Termini connects clients with barbers, beauty salons and nail studios. Live free times, no phone calls.',
+    for_clients: 'For clients', for_business: 'For businesses', f_c1: 'See free times right now', f_c2: 'Book in one tap', f_c3: 'Calendar reminder',
+    f_b1: 'Digital agenda for the whole team', f_b2: 'WhatsApp reminders', f_b3: 'Fewer no-shows'
   }
 };

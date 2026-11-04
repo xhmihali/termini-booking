@@ -11,6 +11,8 @@ A booking app (installable PWA) for barbers, beauty salons, nail studios and spa
 
 **New salon onboarding:** the owner signs up as Business, creates the salon, and sees a checklist (account → hours → services → staff → admin approval) with a progress bar. When approved, the owner sees an "Your salon is approved!" message with the trial end date the next time they open the app. Set `ADMIN_PHONE` in `config.js` so owners with an expired plan get a button to WhatsApp you.
 
+**Works on phone and computer:** on a phone it is an installable app with a bottom menu. On a tablet the lists use 2 columns. On a computer (1024px and wider) it becomes a full website: left sidebar menu, cards in 2–3 columns, salon page with services on the left and staff/hours on the right, centered pop-up windows, and a login page with a marketing panel.
+
 ## Cost: €0
 
 | Part | Service | Cost |

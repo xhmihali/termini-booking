@@ -118,8 +118,10 @@
   function shell(content, opts = {}) {
     const nav = S.user ? NAVS[S.user.role] || [] : [];
     const active = NAV_OF[S.route] || S.route;
-    const showNav = nav.length && !opts.cta;
+    const showNav = nav.length;
     app().innerHTML = `
+      <div class="layout ${showNav ? 'with-nav' : ''}">
+      ${showNav ? `<nav class="nav ${opts.cta ? 'hide-m' : ''}"><div class="in"><div class="nav-brand"><img src="icons/icon.svg" alt="" width="36" height="36">${esc(C.APP_NAME || 'Termini')}</div>${nav.map(([r, k, ic]) => `<button class="${active === r ? 'on' : ''}" data-nav="${r}" aria-label="${esc(t(k))}">${ic}<span>${esc(t(k))}</span></button>`).join('')}</div></nav>` : ''}
       <div class="wrap ${opts.cta ? 'has-cta' : ''} ${opts.fab ? 'has-fab' : ''}">
         <header class="top">
           ${opts.back ? `<button class="back" data-back aria-label="${esc(t('back'))}">${I.back}</button>` : `<div class="brand"><img class="brand-mark" src="icons/icon.svg" alt="" width="34" height="34">${esc(C.APP_NAME || 'Termini')}</div>`}
@@ -129,9 +131,9 @@
         </header>
         <main>${content}</main>
       </div>
+      </div>
       ${opts.cta ? `<div class="cta"><div class="in">${opts.cta}</div></div>` : ''}
-      ${opts.fab && showNav ? opts.fab : ''}
-      ${showNav ? `<nav class="nav"><div class="in">${nav.map(([r, k, ic]) => `<button class="${active === r ? 'on' : ''}" data-nav="${r}" aria-label="${esc(t(k))}">${ic}<span>${esc(t(k))}</span></button>`).join('')}</div></nav>` : ''}`;
+      ${opts.fab && showNav ? opts.fab : ''}`;
     $$('[data-nav]').forEach(b => b.onclick = () => go(b.dataset.nav));
     const bk = $('[data-back]'); if (bk) bk.onclick = () => (history.length > 1 ? history.back() : home());
     $('[data-lang]').onclick = () => { lang = lang === 'sq' ? 'en' : 'sq'; store.set('termini_lang', lang); document.documentElement.lang = lang; render(); };
@@ -166,7 +168,15 @@
         </div>
         <div style="margin-top:10px;text-align:center"><button class="linkbtn small" data-reset>${esc(t('reset_demo'))}</button></div>
       </div>` : '';
-    shell(`
+    const feat = (title, keys) => `<div class="feat"><div class="feat-t">${esc(t(title))}</div>${keys.map(k => `<div class="feat-i">${I.check}<span>${esc(t(k))}</span></div>`).join('')}</div>`;
+    shell(`<div class="auth-split">
+      <section class="auth-hero">
+        <img src="icons/icon.svg" alt="" width="84" height="84" class="hero-logo">
+        <h1>${esc(t('tagline'))}</h1>
+        <p>${esc(t('hero_desktop_sub'))}</p>
+        <div class="feats">${feat('for_clients', ['f_c1', 'f_c2', 'f_c3'])}${feat('for_business', ['f_b1', 'f_b2', 'f_b3'])}</div>
+      </section>
+      <section class="auth-main">
       <div class="hero"><div class="grow"><h1>${esc(C.APP_NAME || 'Termini')}</h1><p>${esc(t('tagline'))}</p></div><img class="hero-logo" src="icons/icon.svg" alt="" width="88" height="88"></div>
       <div class="card">
         <div class="seg"><button class="${mode === 'login' ? 'on' : ''}" data-mode="login">${esc(t('login'))}</button><button class="${mode === 'register' ? 'on' : ''}" data-mode="register">${esc(t('register'))}</button></div>
@@ -180,7 +190,7 @@
           <label class="f"><span>${esc(t('password'))} *</span><input type="password" name="password" autocomplete="${mode === 'login' ? 'current-password' : 'new-password'}" required></label>
           <button class="btn primary block" type="submit">${esc(t(mode === 'login' ? 'login' : 'register'))}</button>
         </form>
-      </div>${demo}`);
+      </div>${demo}</section></div>`);
     $$('[data-mode]').forEach(b => b.onclick = () => viewAuth(b.dataset.mode, role));
     $$('[data-role]').forEach(b => b.onclick = () => viewAuth('register', b.dataset.role));
     $$('[data-demo]').forEach(b => b.onclick = () => guard(async () => { S.user = await DB().signIn(b.dataset.demo, 'demo123'); home(); }));
@@ -276,7 +286,7 @@
       </label>
       <div class="cats">${CATS.map(c => `<button class="cat ${c} ${exploreState.cat === c ? 'on' : ''}" data-cat="${c}">${CAT_ICON[c]}<span style="text-align:center;line-height:1.15;padding:0 4px">${esc(catLabel(c))}</span></button>`).join('')}</div>
       <h2>${esc(exploreState.q || exploreState.cat || exploreState.city ? t('all_results') : t('free_now'))}</h2>
-      <div class="list" id="salons"></div>`);
+      <div class="list grid-cards" id="salons"></div>`);
     $('#q').oninput = e => { exploreState.q = e.target.value; draw(); };
     const cs = $('#city'); if (cs) cs.onchange = () => { exploreState.city = cs.value; draw(); };
     $$('[data-cat]').forEach(b => b.onclick = () => { exploreState.cat = exploreState.cat === b.dataset.cat ? '' : b.dataset.cat; viewExplore(); });
@@ -307,14 +317,16 @@
         <a class="btn ghost sm" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.name + ' ' + s.address + ' ' + s.city)}">${I.pin} ${esc(s.address)}</a>
       </div>
       ${s.accepting === false ? `<div class="notice warn" style="margin-top:14px">${esc(t('not_accepting'))}</div>` : ''}
+      <div class="split"><div class="col-main">
       <h2>${esc(t('services'))}</h2>
       <div class="list">${svc.length ? svc.map(x => `
         <div class="card row">
           <div class="grow"><div class="title">${esc(x.name)}</div><div class="muted small">${x.duration} ${esc(t('min'))} · <b style="color:var(--ink)">${esc(money(x.price))}</b></div></div>
           <button class="btn accent sm" data-book="${x.id}" ${canBook ? '' : 'disabled'}>${esc(t('book'))}</button>
         </div>`).join('') : `<div class="empty">—</div>`}</div>
+      </div><aside class="col-side">
       ${team.length ? `<h2>${esc(t('staff'))}</h2><div class="chips">${team.map((p, i) => `<span class="person" style="cursor:default"><span class="ini" style="${tone(i)}">${esc(initials(p.name))}</span>${esc(p.name)}</span>`).join('')}</div>` : ''}
-      <h2>${esc(t('hours'))}</h2><div class="card">${hoursTable(s.hours)}</div>`, { back: true, center: stepsBar(1) });
+      <h2>${esc(t('hours'))}</h2><div class="card">${hoursTable(s.hours)}</div></aside></div>`, { back: true, center: stepsBar(1) });
     $$('[data-book]').forEach(b => b.onclick = () => go('book', { salon: s.id, service: b.dataset.book }));
   }
 
@@ -343,7 +355,7 @@
     const count = d => genSlots(ymd(d), salon, service, staff, busy, st.staffId).length;
     st.date = pre ? ymd(pre) : ymd(days.find(d => count(d) > 0) || days[0]);
 
-    shell(`
+    shell(`<div class="narrow">
       <h1>${esc(t('when_come'))}</h1>
       <p class="sub">${esc(service.name)} · ${service.duration} ${esc(t('min'))} · ${esc(salon.name)}</p>
       ${salon.accepting === false ? `<div class="notice warn">${esc(t('not_accepting'))}</div>` : ''}
@@ -353,7 +365,7 @@
       <div class="daystrip" id="days" style="margin-top:8px"></div>
       <div class="legend"><span><i style="background:#22C55E"></i>${esc(t('avail_many'))}</span><span><i style="background:#F59E0B"></i>${esc(t('avail_few'))}</span><span><i style="background:#EF4444"></i>${esc(t('avail_full'))}</span></div>
       <div id="slots"></div>
-      <div style="margin-top:16px" id="notewrap"><button class="linkbtn" id="addnote">${esc(t('add_note'))}</button></div>`,
+      <div style="margin-top:16px" id="notewrap"><button class="linkbtn" id="addnote">${esc(t('add_note'))}</button></div></div>`,
       { back: true, center: stepsBar(2), cta: `<button id="go" disabled>${esc(t('pick_time'))}</button>` });
 
     const markStaff = () => $$('[data-staff]').forEach(x => x.classList.toggle('on', x.dataset.staff === st.staffId));
@@ -421,7 +433,7 @@
     shell(`
       <h1>${esc(t('my_bookings'))}</h1>
       <div class="seg" style="margin-top:12px"><button class="${bookTab === 'upcoming' ? 'on' : ''}" data-tab="upcoming">${esc(t('upcoming'))} (${up.length})</button><button class="${bookTab === 'past' ? 'on' : ''}" data-tab="past">${esc(t('past'))}</button></div>
-      <div class="list">${list.length ? list.map(b => { const d = new Date(b.start_at); return `
+      <div class="list grid-cards">${list.length ? list.map(b => { const d = new Date(b.start_at); return `
         <div class="card ${b.status === 'cancelled' ? 'b-cancelled' : ''}">
           <div class="row" style="align-items:flex-start">
             <div style="width:52px;flex:none;border-radius:16px;background:var(--accent-softer);color:var(--accent);text-align:center;padding:7px 0;line-height:1.1">
@@ -643,7 +655,7 @@
         </div>
       </div>
       ${staff.length > 1 ? `<div class="chips" style="margin-top:10px"><button class="chip ${!agendaStaff ? 'on' : ''}" data-fs="">${esc(t('all_staff'))}</button>${staff.map(p => `<button class="chip ${agendaStaff === p.id ? 'on' : ''}" data-fs="${p.id}">${esc(p.name)} · ${counts[p.id] || 0}</button>`).join('')}</div>` : ''}
-      ${items.length ? sections.map(([k, label]) => { const its = items.filter(it => sec(it) === k); return its.length ? `<div class="kicker">${esc(label)}</div><div class="list">${its.map(card).join('')}</div>` : ''; }).join('')
+      ${items.length ? sections.map(([k, label]) => { const its = items.filter(it => sec(it) === k); return its.length ? `<div class="kicker">${esc(label)}</div><div class="list grid-cards">${its.map(card).join('')}</div>` : ''; }).join('')
         : `<div class="empty">${esc(t('empty_day'))}</div>`}`,
       { fab: staff.length && svcs.length && !isPast ? `<button class="fab" id="walk">${I.plus}${esc(t('walk_in'))}</button>` : '' });
 
@@ -733,7 +745,7 @@
     const list = await DB().listServices(s.id);
     shell(`${salonBanner(s)}
       <div class="row between"><h1>${esc(t('services'))}</h1><button class="btn gold sm" id="add">+ ${esc(t('add'))}</button></div>
-      <div class="list" style="margin-top:10px">${list.length ? list.map(x => `
+      <div class="list grid-cards" style="margin-top:10px">${list.length ? list.map(x => `
         <div class="card row tap" data-edit="${x.id}" style="${x.active === false ? 'opacity:.5' : ''}">
           <div class="grow"><div class="title">${esc(x.name)}</div><div class="muted small">${x.duration} ${esc(t('min'))}</div></div>
           <div class="price">${esc(money(x.price))}</div></div>`).join('') : `<div class="empty">${esc(t('min_services'))}</div>`}</div>`);
@@ -763,7 +775,7 @@
     const list = await DB().listStaff(s.id);
     shell(`${salonBanner(s)}
       <div class="row between"><h1>${esc(t('staff'))}</h1><button class="btn gold sm" id="add">+ ${esc(t('add'))}</button></div>
-      <div class="list" style="margin-top:10px">${list.length ? list.map(x => `
+      <div class="list grid-cards" style="margin-top:10px">${list.length ? list.map(x => `
         <div class="card row tap" data-edit="${x.id}" style="${x.active === false ? 'opacity:.5' : ''}">
           <div class="avatar" style="width:38px;height:38px;font-size:14px">${esc(initials(x.name))}</div>
           <div class="grow title">${esc(x.name)}</div>${x.active === false ? '' : `<span class="pill ok">${esc(t('active'))}</span>`}</div>`).join('') : `<div class="empty">${esc(t('min_staff'))}</div>`}</div>`);
@@ -811,7 +823,7 @@
         <div class="stat"><div class="v">${st.bookings30}</div><div class="l">${esc(t('bookings_30'))}</div></div>
       </div>
       <h2>${esc(t('pending_salons'))} (${pending.length})</h2>
-      <div class="list">${pending.length ? pending.map(adminSalonCard).join('') : '<div class="empty">—</div>'}</div>`);
+      <div class="list grid-cards">${pending.length ? pending.map(adminSalonCard).join('') : '<div class="empty">—</div>'}</div>`);
     bindAdminSalonActions(viewAdmDash, salons);
   }
   function adminSalonCard(s) {
@@ -863,7 +875,7 @@
     shell(`
       <h1>${esc(t('salons'))}</h1>
       <div class="chips" style="margin-top:8px">${['', 'pending', 'active', 'suspended'].map(f => `<button class="chip ${admFilter === f ? 'on' : ''}" data-f="${f}">${esc(f ? t('status_' + f) : t('filter_all'))} (${f ? salons.filter(s => s.status === f).length : salons.length})</button>`).join('')}</div>
-      <div class="list" style="margin-top:8px">${list.length ? list.map(adminSalonCard).join('') : '<div class="empty">—</div>'}</div>`);
+      <div class="list grid-cards" style="margin-top:8px">${list.length ? list.map(adminSalonCard).join('') : '<div class="empty">—</div>'}</div>`);
     $$('[data-f]').forEach(b => b.onclick = () => { admFilter = b.dataset.f; viewAdmSalons(); });
     bindAdminSalonActions(viewAdmSalons, salons);
   }
@@ -878,7 +890,7 @@
         <div class="grow"><div class="title ellipsis">${esc(u.name)}</div><div class="muted small ellipsis">${esc(u.email)} · ${esc(u.phone || '')}</div></div>
         <span class="pill ${u.role === 'admin' ? 'bad' : u.role === 'business' ? 'warn' : 'info'}">${esc(t(u.role))}</span></div>`).join('') || '<div class="empty">—</div>';
     };
-    shell(`<h1>${esc(t('users'))} (${users.length})</h1><input type="search" id="uq" placeholder="${esc(t('search_users'))}" style="margin:8px 0 10px"><div class="list" id="ul"></div>`);
+    shell(`<h1>${esc(t('users'))} (${users.length})</h1><input type="search" id="uq" placeholder="${esc(t('search_users'))}" style="margin:8px 0 10px"><div class="list grid-cards" id="ul"></div>`);
     $('#uq').oninput = e => { q = e.target.value.toLowerCase(); draw(); };
     draw();
   }
