@@ -25,6 +25,17 @@ A booking app (installable PWA) for barbers, beauty salons, nail studios and spa
 
 **Your data is safe (3 layers, free):** the live data is in the Supabase cloud database, not on the phone. A GitHub Action makes an **encrypted backup every night** (branch `backups`, last 30 kept). The admin can **download a full copy** at any time, and each business can download its bookings as CSV. Setup and restore steps: [`supabase/RESTORE.md`](supabase/RESTORE.md). ⚠️ Demo mode keeps data only in the browser; use it for testing, not for real clients.
 
+**Backgrounds:** 7 themes, chosen in Profile → Background (saved per device). The default is set in `config.js` → `DEFAULT_BG`.
+- `mesh` (default): slow moving colour mesh
+- `aurora`: static colours
+- `circuit`: tech grid with light beams
+- `network`: drifting dots with links
+- `waves`: moving waves at the bottom
+- `minimal`: static dots
+- `orbs`: 3D spheres
+
+All are pure CSS/canvas. They pause when the app is hidden and stay still for users who turn off animations.
+
 ## Cost: €0
 
 | Part | Service | Cost |

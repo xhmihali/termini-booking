@@ -78,7 +78,7 @@
     if (m === 'NOT_ACCEPTING') return t('not_accepting');
     console.error(e); return t('error') + (m ? ': ' + m : '');
   }
-  async function guard(fn) { try { return await fn(); } catch (e) { toast(errMsg(e)); } }
+  async function guard(fn) { try { return await fn(); } catch (e) { if (e && e.message === 'STALE_VIEW') return; toast(errMsg(e)); } }
   function sheet(html, mount) {
     const scrim = document.createElement('div'); scrim.className = 'scrim';
     scrim.innerHTML = `<div class="sheet" role="dialog">${html}</div>`;
@@ -179,7 +179,7 @@
     // remember where the sliding tab indicator is right now, so it can glide to the new tab
     let from = null;
     const oldInd = $('.nav-ind'), oldIn = $('.nav .in');
-    if (oldInd && oldIn && oldIn.offsetParent) { const r = oldInd.getBoundingClientRect(), p = oldIn.getBoundingClientRect(); from = { x: r.left - p.left, y: r.top - p.top, w: r.width, h: r.height }; }
+    if (oldInd && oldIn && oldIn.offsetParent) { const r = oldInd.getBoundingClientRect(), p = oldIn.getBoundingClientRect(); from = { x: r.left - p.left - oldIn.clientLeft, y: r.top - p.top - oldIn.clientTop, w: r.width, h: r.height }; }
     const newIdx = nav.findIndex(([r]) => r === active);
     // page enter animation once per route (not for the loading spinner)
     const key = S.route + JSON.stringify(S.params || {});
@@ -216,12 +216,16 @@
     $$('[data-auth]').forEach(b => b.onclick = () => go('auth', { mode: b.dataset.auth, role: b.dataset.role || 'client' }));
   }
   const loading = () => shell('<div class="spinner"></div>', { loading: true });
+  // Ignore results of a page that was left before its data arrived (fast tab switching)
+  const STALE = 'STALE_VIEW';
+  function shellT(tk, content, opts) { if (tk !== S.tok) throw new Error(STALE); shell(content, opts); }
+  window.addEventListener('unhandledrejection', e => { if (e.reason && e.reason.message === STALE) e.preventDefault(); });
   // Sliding "liquid" pill behind the active tab (bottom bar on phones, sidebar on desktop)
   function placeNavIndicator(from) {
     const inn = $('.nav .in'), on = $('.nav button.on'); if (!inn || !on) return;
     const ind = document.createElement('span'); ind.className = 'nav-ind'; ind.setAttribute('aria-hidden', 'true'); inn.prepend(ind);
     const set = (x, y, w, h) => { ind.style.transform = `translate3d(${x}px, ${y}px, 0)`; ind.style.width = w + 'px'; ind.style.height = h + 'px'; };
-    const target = () => { const r = on.getBoundingClientRect(), p = inn.getBoundingClientRect(); return [r.left - p.left, r.top - p.top, r.width, r.height]; };
+    const target = () => { const r = on.getBoundingClientRect(), p = inn.getBoundingClientRect(); return [r.left - p.left - inn.clientLeft, r.top - p.top - inn.clientTop, r.width, r.height]; };
     if (from && from.w) {
       ind.style.transition = 'none'; set(from.x, from.y, from.w, from.h); void ind.offsetWidth;
       ind.style.transition = ''; requestAnimationFrame(() => { set(...target()); ind.classList.add('moving'); setTimeout(() => ind.classList.remove('moving'), 520); });
@@ -229,15 +233,17 @@
   }
   window.addEventListener('resize', () => { const inn = $('.nav .in'), on = $('.nav button.on'), ind = $('.nav-ind'); if (!inn || !on || !ind) return;
     const r = on.getBoundingClientRect(), p = inn.getBoundingClientRect(); ind.style.transition = 'none';
-    ind.style.transform = `translate3d(${r.left - p.left}px, ${r.top - p.top}px, 0)`; ind.style.width = r.width + 'px'; ind.style.height = r.height + 'px'; });
+    ind.style.transform = `translate3d(${r.left - p.left - inn.clientLeft}px, ${r.top - p.top - inn.clientTop}px, 0)`; ind.style.width = r.width + 'px'; ind.style.height = r.height + 'px'; });
 
+  let renderSeq = 0;
   async function render() {
+    S.tok = ++renderSeq;
     if (!S.user) {
       try {
         if (S.route === 'salon' && S.params.id) return await viewSalon();
         if (S.route === 'auth') return viewAuth(S.params.mode || 'login', S.params.role || 'client');
         return await viewLanding();
-      } catch (e) { return shell(`<div class="notice bad">${esc(errMsg(e))}</div>`); }
+      } catch (e) { if (e && e.message === STALE) return; return shell(`<div class="notice bad">${esc(errMsg(e))}</div>`); }
     }
     const views = {
       explore: viewExplore, salon: viewSalon, book: viewBook, 'my-bookings': viewMyBookings, profile: viewProfile,
@@ -250,7 +256,7 @@
     if (r.startsWith('biz-') && S.user.role !== 'business') return home();
     if (r.startsWith('adm-') && S.user.role !== 'admin') return home();
     if (allowed[r] && S.user.role !== 'client' && S.user.role !== 'admin') return home();
-    try { await views[r](); } catch (e) { shell(`<div class="notice bad">${esc(errMsg(e))}</div>`); }
+    try { await views[r](); } catch (e) { if (e && e.message === STALE) return; shell(`<div class="notice bad">${esc(errMsg(e))}</div>`); }
   }
 
   // ---------- Auth ----------
@@ -307,6 +313,7 @@
   // ---------- Public website (guests) ----------
   let landingState = { q: '', city: '', cat: '' };
   async function viewLanding() {
+    const tk = S.tok;
     loading();
     const salons = await DB().listSalons();
     const cities = [...new Set(salons.map(s => s.city).filter(Boolean))].sort();
@@ -316,7 +323,7 @@
     const bizF = [['bf1_t', 'bf1_d', I.cal], ['bf2_t', 'bf2_d', I.wa], ['bf3_t', 'bf3_d', I.plus], ['bf4_t', 'bf4_d', I.chart], ['bf5_t', 'bf5_d', I.share], ['bf6_t', 'bf6_d', I.store]];
     const faqs = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'];
     const year = new Date().getFullYear();
-    shell(`
+    shellT(tk, `
       <section class="lp-hero">
         <div class="lp-hero-text">
           <span class="pill info" style="margin-bottom:14px">${esc(t('lp_badge'))}</span>
@@ -459,6 +466,7 @@
   }
 
   async function viewExplore() {
+    const tk = S.tok;
     loading();
     const [salons, mine, myRev] = await Promise.all([DB().listSalons(), DB().myBookings().catch(() => []), DB().myReviews().catch(() => [])]);
     const revIds = new Set(myRev.map(r => r.booking_id));
@@ -515,7 +523,7 @@
         go('book', { salon, service, start, staff });
       });
     };
-    shell(`
+    shellT(tk, `
       <div class="row between" style="margin-top:4px">
         <div><div class="muted" style="font-weight:600">${esc(t('hello'))}, ${esc(first)}</div><h1 style="margin:0">${esc(t('what_today'))}</h1></div>
         <div class="avatar" style="background:var(--accent);color:#fff;width:46px;height:46px;border-radius:15px">${esc(initials(S.user.name))}</div>
@@ -547,13 +555,14 @@
   const stepsBar = (a, b = 3) => `<div class="steps" aria-label="${esc(t('step_of').replace('{a}', a).replace('{b}', b))}">${Array.from({ length: b }, (_, i) => `<span class="${i < a ? 'on' : ''}"></span>`).join('')}</div>`;
 
   async function viewSalon() {
+    const tk = S.tok;
     loading();
     const s = await DB().getSalon(S.params.id); if (!s) return home();
     const [services, staff, reviews] = await Promise.all([DB().listServices(s.id), DB().listStaff(s.id), DB().listReviews(s.id, 12).catch(() => [])]);
     const svc = services.filter(x => x.active !== false), team = staff.filter(p => p.active !== false);
     const photos = s.photos || [];
     const canBook = team.length && s.accepting !== false && s.status === 'active';
-    shell(`
+    shellT(tk, `
       ${photos.length ? `<div class="gallery g${Math.min(photos.length, 3)}">${photos.map((ph, i) => `<button class="gph" data-ph="${i}" aria-label="${esc(t('photo'))} ${i + 1}"><img src="${esc(ph.url)}" alt="${esc(s.name)}" loading="${i ? 'lazy' : 'eager'}"></button>`).join('')}</div>` : ''}
       <div class="row" style="margin:4px 0 8px">
         ${salonThumb(s, 'big')}
@@ -610,6 +619,7 @@
   }
 
   async function viewBook() {
+    const tk = S.tok;
     loading();
     const salon = await DB().getSalon(S.params.salon); if (!salon) return home();
     const [services, staffAll] = await Promise.all([DB().listServices(salon.id), DB().listStaff(salon.id)]);
@@ -623,7 +633,7 @@
     const count = d => genSlots(ymd(d), salon, service, staff, busy, st.staffId).length;
     st.date = pre ? ymd(pre) : ymd(days.find(d => count(d) > 0) || days[0]);
 
-    shell(`<div class="narrow">
+    shellT(tk, `<div class="narrow">
       <h1>${esc(t('when_come'))}</h1>
       <p class="sub">${esc(service.name)} · ${service.duration} ${esc(t('min'))} · ${esc(salon.name)}</p>
       ${salon.accepting === false ? `<div class="notice warn">${esc(t('not_accepting'))}</div>` : ''}
@@ -693,13 +703,14 @@
 
   let bookTab = 'upcoming';
   async function viewMyBookings() {
+    const tk = S.tok;
     loading();
     const [all, mine] = await Promise.all([DB().myBookings(), DB().myReviews().catch(() => [])]); const nowT = Date.now();
     const reviewed = Object.fromEntries(mine.map(r => [r.booking_id, r.rating]));
     const up = all.filter(b => new Date(b.end_at) >= nowT && b.status === 'confirmed').sort((a, b) => new Date(a.start_at) - new Date(b.start_at));
     const past = all.filter(b => !up.includes(b)).sort((a, b) => new Date(b.start_at) - new Date(a.start_at));
     const list = bookTab === 'upcoming' ? up : past;
-    shell(`
+    shellT(tk, `
       <h1>${esc(t('my_bookings'))}</h1>
       <div class="seg" style="margin-top:12px"><button class="${bookTab === 'upcoming' ? 'on' : ''}" data-tab="upcoming">${esc(t('upcoming'))} (${up.length})</button><button class="${bookTab === 'past' ? 'on' : ''}" data-tab="past">${esc(t('past'))}</button></div>
       <div class="list grid-cards">${list.length ? list.map(b => { const d = new Date(b.start_at); return `
@@ -728,8 +739,9 @@
   }
 
   async function viewProfile() {
+    const tk = S.tok;
     const u = S.user;
-    shell(`
+    shellT(tk, `
       <h1>${esc(t('profile'))}</h1>
       <div class="card" style="margin-top:10px">
         <div class="row" style="margin-bottom:14px"><div class="avatar">${esc(initials(u.name))}</div><div><div class="title">${esc(u.name)}</div><div class="muted small">${esc(u.email)} · ${esc(t(u.role))}</div></div></div>
@@ -741,12 +753,15 @@
       </div>
       <div class="card"><div class="row between"><span class="title">${esc(t('language'))}</span>
         <div class="seg" style="margin:0;width:160px"><button class="${lang === 'sq' ? 'on' : ''}" data-l="sq">Shqip</button><button class="${lang === 'en' ? 'on' : ''}" data-l="en">English</button></div></div></div>
+      ${window.TerminiBG ? `<div class="card"><div class="title" style="margin-bottom:10px">${esc(t('background'))}</div>
+        <div class="bgpick">${window.TerminiBG.themes.map(n => `<button class="bgopt ${window.TerminiBG.current === n ? 'on' : ''}" data-bgset="${n}"><span class="bgsw sw-${n}"></span><span>${esc(t('bg_' + n))}</span></button>`).join('')}</div></div>` : ''}
       <div class="actions" style="margin-top:16px"><button class="btn danger block" id="lo">${esc(t('logout'))}</button></div>
       ${LIVE ? '' : `<div style="text-align:center;margin-top:14px"><button class="linkbtn small" id="rs">${esc(t('reset_demo'))}</button></div>`}`);
     $('#pf').onsubmit = e => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
       if (!f.name.trim()) return toast(t('fill_required'));
       guard(async () => { S.user = await DB().updateProfile({ name: f.name.trim(), phone: f.phone.trim() }); toast(t('saved')); viewProfile(); }); };
     $$('[data-l]').forEach(b => b.onclick = () => { lang = b.dataset.l; store.set('termini_lang', lang); document.documentElement.lang = lang; render(); });
+    $$('[data-bgset]').forEach(b => b.onclick = () => { window.TerminiBG.set(b.dataset.bgset); $$('[data-bgset]').forEach(x => x.classList.toggle('on', x === b)); });
     $('#lo').onclick = () => guard(async () => { await DB().signOut(); S.user = null; S.salon = null; go(guestHome(), {}, true); });
     const rs = $('#rs'); if (rs) rs.onclick = () => { if (confirm(t('reset_confirm'))) guard(async () => { await DB().reset(); S.user = null; S.salon = null; go(guestHome(), {}, true); }); };
   }
@@ -870,6 +885,7 @@
   }
 
   async function viewBizAgenda() {
+    const tk = S.tok;
     loading();
     const s = await bizSalon(); if (!s) return viewBizSetup();
     const d0 = fromYmd(agendaDate), d1 = addDays(d0, 1);
@@ -919,7 +935,7 @@
     const days = Array.from({ length: 17 }, (_, i) => addDays(fromYmd(ymd(new Date())), i - 2));
     const counts = Object.fromEntries(staff.map(p => [p.id, live.filter(b => b.staff_id === p.id).length]));
     const accepting = s.accepting !== false;
-    shell(`
+    shellT(tk, `
       ${salonBanner(s)}
       <div class="row between" style="margin-top:4px;align-items:flex-start">
         <div class="grow"><div class="muted small" style="font-weight:700">${esc(s.name)}</div><h1 style="margin:0">${esc(longDate(d0))}</h1></div>
@@ -1021,10 +1037,11 @@
   }
 
   async function viewBizServices() {
+    const tk = S.tok;
     loading();
     const s = await bizSalon(); if (!s) return viewBizSetup();
     const list = await DB().listServices(s.id);
-    shell(`${salonBanner(s)}
+    shellT(tk, `${salonBanner(s)}
       <div class="row between"><h1>${esc(t('services'))}</h1><button class="btn gold sm" id="add">+ ${esc(t('add'))}</button></div>
       <div class="list grid-cards" style="margin-top:10px">${list.length ? list.map(x => `
         <div class="card row tap" data-edit="${x.id}" style="${x.active === false ? 'opacity:.5' : ''}">
@@ -1051,10 +1068,11 @@
   }
 
   async function viewBizStaff() {
+    const tk = S.tok;
     loading();
     const s = await bizSalon(); if (!s) return viewBizSetup();
     const list = await DB().listStaff(s.id);
-    shell(`${salonBanner(s)}
+    shellT(tk, `${salonBanner(s)}
       <div class="row between"><h1>${esc(t('staff'))}</h1><button class="btn gold sm" id="add">+ ${esc(t('add'))}</button></div>
       <div class="list grid-cards" style="margin-top:10px">${list.length ? list.map(x => `
         <div class="card row tap" data-edit="${x.id}" style="${x.active === false ? 'opacity:.5' : ''}">
@@ -1077,10 +1095,11 @@
   }
 
   async function viewBizSalon() {
+    const tk = S.tok;
     loading();
     const s = await bizSalon(); if (!s) return viewBizSetup();
     const expired = isExpired(s);
-    shell(`${salonBanner(s)}
+    shellT(tk, `${salonBanner(s)}
       <h1>${esc(t('settings'))}</h1>
       <div class="card row" style="margin:10px 0">
         <div class="grow"><div class="muted small">${esc(t('plan'))}</div><div class="title">${esc(t('plan_' + (expired ? 'expired' : s.plan)))}</div></div>
@@ -1135,13 +1154,14 @@
   }
 
   async function viewBizQr() {
+    const tk = S.tok;
     loading();
     const s = await bizSalon(); if (!s) return viewBizSetup();
     if (!window.qrcode) await loadScript('js/vendor/qrcode.js');
     const url = salonLink(s.id);
     const qr = window.qrcode(0, 'M'); qr.addData(url); qr.make();
     const svg = qr.createSvgTag({ cellSize: 10, margin: 0, scalable: true });
-    shell(`<div class="noprint">
+    shellT(tk, `<div class="noprint">
         <h1>${esc(t('qr_title'))}</h1><p class="sub">${esc(t('qr_sub'))}</p>
         <div class="actions" style="margin:0 0 18px"><button class="btn accent" id="print">${esc(t('print'))}</button>
           <a class="btn ghost" download="termini-qr-${esc(s.id.slice(0, 8))}.svg" href="data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}">${esc(t('download_qr'))}</a></div>
@@ -1168,10 +1188,11 @@
 
   // ---------- Admin ----------
   async function viewAdmDash() {
+    const tk = S.tok;
     loading();
     const [st, salons] = await Promise.all([DB().adminStats(), DB().adminSalons()]);
     const pending = salons.filter(s => s.status === 'pending');
-    shell(`
+    shellT(tk, `
       <h1>${esc(t('dashboard'))}</h1>
       ${LIVE ? '' : `<div class="notice warn" style="margin-top:10px">${esc(t('demo_data_warning'))}</div>`}
       <div class="card row" style="margin:10px 0">
@@ -1235,10 +1256,11 @@
   }
   let admFilter = '';
   async function viewAdmSalons() {
+    const tk = S.tok;
     loading();
     const salons = (await DB().adminSalons()).sort((a, b) => (a.status === 'pending' ? -1 : 0) - (b.status === 'pending' ? -1 : 0) || a.name.localeCompare(b.name));
     const list = salons.filter(s => !admFilter || s.status === admFilter);
-    shell(`
+    shellT(tk, `
       <h1>${esc(t('salons'))}</h1>
       <div class="chips" style="margin-top:8px">${['', 'pending', 'active', 'suspended'].map(f => `<button class="chip ${admFilter === f ? 'on' : ''}" data-f="${f}">${esc(f ? t('status_' + f) : t('filter_all'))} (${f ? salons.filter(s => s.status === f).length : salons.length})</button>`).join('')}</div>
       <div class="list grid-cards" style="margin-top:8px">${list.length ? list.map(adminSalonCard).join('') : '<div class="empty">—</div>'}</div>`);
@@ -1246,6 +1268,7 @@
     bindAdminSalonActions(viewAdmSalons, salons);
   }
   async function viewAdmUsers() {
+    const tk = S.tok;
     loading();
     const users = (await DB().adminUsers()).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
     let q = '';
@@ -1256,7 +1279,7 @@
         <div class="grow"><div class="title ellipsis">${esc(u.name)}</div><div class="muted small ellipsis">${esc(u.email)} · ${esc(u.phone || '')}</div></div>
         <span class="pill ${u.role === 'admin' ? 'bad' : u.role === 'business' ? 'warn' : 'info'}">${esc(t(u.role))}</span></div>`).join('') || '<div class="empty">—</div>';
     };
-    shell(`<h1>${esc(t('users'))} (${users.length})</h1><input type="search" id="uq" placeholder="${esc(t('search_users'))}" style="margin:8px 0 10px"><div class="list grid-cards" id="ul"></div>`);
+    shellT(tk, `<h1>${esc(t('users'))} (${users.length})</h1><input type="search" id="uq" placeholder="${esc(t('search_users'))}" style="margin:8px 0 10px"><div class="list grid-cards" id="ul"></div>`);
     $('#uq').oninput = e => { q = e.target.value.toLowerCase(); draw(); };
     draw();
   }
